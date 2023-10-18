@@ -115,13 +115,6 @@ class Scene:
 
     def aggregate_species_data(self, savedir):
         species = {}
-        
-        """
-        {
-            count: N
-            totalEnergy: E
-        }
-        """
 
         for filename in os.listdir(savedir + "/bibites"):
             if filename.endswith('.bb8'):
