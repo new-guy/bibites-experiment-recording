@@ -1,10 +1,14 @@
 # Bibites Experiment Recording
 
+**At the time of posting, this only supports Alpha 0.6a7** - the game is in active development, which means the save format is in active development.  Unfortunately, this means that supporting multiple versions of save formats is nontrivial.  Please feel free to submit a PR if you get it working for a different version, and I'll make a release tag for it.
+
 Hi, I made this to record timeseries data from Bibites so that I can better understand how the different species are changing in relation to one another and the environment.  There's a lot that can be added and improved, but at the very least this gives some basic overviews of how species are changing over time.  This is set up to read data from autosaves, parse it out, send it to InfluxDB, then you can use Grafana to visualize it.  I'm using this to run an experiment multiple times (sometimes simultaneously across multiple bibites clients), and then aggregate the results for comparison without having to watch the simulation 24/7.
 
 I'm not a data scientist, so I'm sure there's a lot that can be improved here.  If you have any suggestions, please feel free to submit a PR or open an issue.  Also if you do figure out how to get all of this going and wanna submit a quick PR to improve these docs, that'd be cool too.
 
 ## Setup - Infrastructure
+
+**At the time of posting, this only supports Alpha 0.6a7**
 
 I'm using Grafana Cloud and InfluxDB Cloud.
 Grafana Cloud: https://grafana.com/products/cloud/
@@ -21,6 +25,8 @@ Also feel free to import the `basicdashboard.json` file as a dashboard into graf
 ![image](dashboard_example.png)
 
 ## Setup - Local
+
+**At the time of posting, this only supports Alpha 0.6a7**
 
 Use `pip` or `pip3` or `python3 -m pip` or whatever with the `-r requirements.txt` flag to install all the required packages.  Create a `config.json` file in the root of this dir with the following format:
 
