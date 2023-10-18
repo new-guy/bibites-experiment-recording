@@ -38,6 +38,8 @@ Use `pip` or `pip3` or `python3 -m pip` or whatever with the `-r requirements.tx
         "autosavePath": "[path to where your game autosaves]"
     }
 
+![image](config_example.png)
+
 ## Setup - Bibites
 
 The values are stored in InfluxDB under `scenario` and `run` tags - the idea being that you'll run a Scenario `N` times, and then you can filter grafana graphs off of that.  IDK if this is the best way to do it - it's my first day using InfluxDB.
