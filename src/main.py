@@ -231,12 +231,13 @@ class ZippedAutosaveHandler(FileSystemEventHandler):
             return None
         elif event.event_type == 'created':
             print(f"Found new autosave: {event.src_path}")
-            time.sleep(10)
+            time.sleep(20)
             try:
                 process_zipped_save(event.src_path)
                 print(f"Sent new autosave to InfluxDB")
-            except:
+            except Exception as e:
                 print(f"Error processing autosave")
+                print(e)
 
 def main(autosaves_path):
     event_handler = ZippedAutosaveHandler()
