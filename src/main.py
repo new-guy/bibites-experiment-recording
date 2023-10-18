@@ -192,7 +192,7 @@ def write_to_influx(scene, settings, client, bucket, org):
             .tag("run", settings.run_num)
             .tag("material", pellet_material)
             .field("count", pellet_data["count"])
-            .field("energy", pellet_data["energy"])
+            .field("energy", float(pellet_data["energy"]))
         )
 
         write_api.write(bucket, org, pellet_point)
