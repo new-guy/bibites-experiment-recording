@@ -1,5 +1,9 @@
 # Bibites Experiment Recording
 
+Hi, I made this to record timeseries data from Bibites so that I can better understand how the different species are changing in relation to one another and the environment.  There's a lot that can be added and improved, but at the very least this gives some basic overviews of how species are changing over time.  This is set up to read data from autosaves, parse it out, send it to InfluxDB, then you can use Grafana to visualize it.  I'm using this to run an experiment multiple times (sometimes simultaneously across multiple bibites clients), and then aggregate the results for comparison without having to watch the simulation 24/7.
+
+I'm not a data scientist, so I'm sure there's a lot that can be improved here.  If you have any suggestions, please feel free to submit a PR or open an issue.  Also if you do figure out how to get all of this going and wanna submit a quick PR to improve these docs, that'd be cool too.
+
 ## Setup - Infrastructure
 
 I'm using Grafana Cloud and InfluxDB Cloud.
@@ -7,7 +11,7 @@ Grafana Cloud: https://grafana.com/products/cloud/
 InfluxDB: https://www.influxdata.com/products/influxdb-cloud/
 
 ### InfluxDB
-Sign up, make an account, make an org, and then make a bucket.  Also make a token granting access to the bucket or everything
+Sign up, make an account, make an org, and then make a bucket.  Also make a token granting access to the bucket or everything.
 
 ### Grafana
 Hook up InfluxDB as a data source in Grafana.  InfluxDB has docs that explain how to do this here: https://docs.influxdata.com/influxdb/cloud-serverless/process-data/visualize/grafana/ but the docs LIE TO YOU in a few places.  Use InfluxQL - don't worry about FlightSQL (unless you wanna struggle for an hour like I did trying to get it running).  Also use the `Flux` query language when you set up InfluxDB as a data source.  I didn't need to set a user or password.  I used the organization and set the default bucket to one that I created, then I made an API key granting full access, and put that in as a token.  Zip zop, baby.  If you run into problems, ask ChatGPT and/or google first please.
@@ -39,3 +43,7 @@ This works by parsing data from autosaves, so I would recommend increasing your 
 ## Running it
 
 Run `python ./src/main.py` or whatever the equivalent is for you
+
+## Contributing
+
+Submit a PR?  If you wanna set up linting and whatnot, that'd be cool.  I might get that going soon and might update these docs some more based on feedback (although please feel free to submit a PR doing so as well!).
