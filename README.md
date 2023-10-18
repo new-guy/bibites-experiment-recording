@@ -44,7 +44,7 @@ The values are stored in InfluxDB under `scenario` and `run` tags - the idea bei
 
 To set these values, your first zone in your scenario needs to be named in the format `"[Scenario] [Run #]"`.  If you don't do this, it _will break_.
 
-This works by parsing data from autosaves, so I would recommend increasing your autosave frequency.
+This works by parsing data from autosaves, so I would recommend increasing your autosave frequency.  Note as well that if you run multiple clients, some will run faster than others, so if you want consistent data, make sure that you uncheck `Real-time autosave period`
 
 ## Running it
 
