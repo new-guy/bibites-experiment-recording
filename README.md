@@ -18,7 +18,7 @@ InfluxDB: https://www.influxdata.com/products/influxdb-cloud/
 Sign up, make an account, make an org, and then make a bucket.  Also make a token granting access to the bucket or everything.
 
 ### Grafana
-Hook up InfluxDB as a data source in Grafana.  InfluxDB has docs that explain how to do this here: https://docs.influxdata.com/influxdb/cloud-serverless/process-data/visualize/grafana/ but the docs LIE TO YOU in a few places.  Use InfluxQL - don't worry about FlightSQL (unless you wanna struggle for an hour like I did trying to get it running).  Also use the `Flux` query language when you set up InfluxDB as a data source.  I didn't need to set a user or password.  I used the organization and set the default bucket to one that I created, then I made an API key granting full access, and put that in as a token.  Zip zop, baby.  If you run into problems, ask ChatGPT and/or google first please.
+Hook up InfluxDB as a data source in Grafana.  Name it "Influx Cloud" or else it won't work.  InfluxDB has docs that explain how to do this here: https://docs.influxdata.com/influxdb/cloud-serverless/process-data/visualize/grafana/ but the docs LIE TO YOU in a few places.  Use InfluxQL - don't worry about FlightSQL (unless you wanna struggle for an hour like I did trying to get it running).  Also use the `Flux` query language when you set up InfluxDB as a data source.  I didn't need to set a user or password.  I used the organization and set the default bucket to one that I created, then I made an API key granting full access, and put that in as a token.  Zip zop, baby.  If you run into problems, ask ChatGPT and/or google first please.
 
 Also feel free to import the `basicdashboard.json` file as a dashboard into grafana.
 
