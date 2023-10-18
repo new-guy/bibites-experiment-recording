@@ -1,0 +1,2 @@
+influxdb-client==1.38.0
+watchdog==3.0.0
