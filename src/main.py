@@ -355,14 +355,11 @@ def update_graphs(n):
             'layout': {
                 'title': f"{gene_name}",
                 'title_font': {'size': 10},
-                'yaxis': {
-                    'rangemode': 'tozero'
-                },
                 'showlegend': False,
                 'margin': {
-                    'l': 20,
-                    'r': 20,
-                    'b': 30,
+                    'l': 30,
+                    'r': 10,
+                    'b': 20,
                     't': 30
                 },
                 'paper_bgcolor': '#1a1a1a',
@@ -431,6 +428,8 @@ def process_zipped_save(zippath, savezip=True):
 
     with zipfile.ZipFile(zippath, 'r') as zip_ref:
         zip_ref.extractall(TEMP_UNARCHIVE_PATH)
+
+    time.sleep(5)
 
     # Load the settings and check if this is the experiment we want
     settings = Settings(TEMP_UNARCHIVE_PATH)
