@@ -15,10 +15,11 @@ from dash import dcc, html
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 
-TEMP_PATH = "./temp_unzipped_save"
+TEMP_UNARCHIVE_PATH = "./temp_unzipped_save"
 PELLET_MATERIALS = ['Plant', 'Meat']
 TARGET_EXPERIMENT = ""
 TARGET_RUN = ""
+SAVEFILE_ARCHIVE_PATH = ""
 
 def load_unclean_json_string(input_str):
     # Remove non-printable characters and weird whitespace
@@ -165,65 +166,112 @@ class Scene:
 graph_data = {
     'simTime': [],
     'plantPelletCount': [],
-    'meatPelletCount': []
+    'meatPelletCount': [],
+    'plantPelletEnergy': [],
+    'meatPelletEnergy': []
 }
 
 app = dash.Dash(__name__)
 def initialize_graphs():
+    scenario_graph_style = {
+        'width': '45%',
+        'display': 'inline-block',
+        'padding': '0 20px'
+    }
+
     app.layout = html.Div([
         html.H1("Bibite Analytics"),
         html.H2(f"Scenario {TARGET_EXPERIMENT} Run {TARGET_RUN}"),
 
         dcc.Graph(
-            id="pellet-counts",
-            figure={
-                'data': [
-                    go.Scatter(x=graph_data['simTime'], y=graph_data['plantPelletCount'], mode='lines+markers', name='Plant'),
-                    go.Scatter(x=graph_data['simTime'], y=graph_data['meatPelletCount'], mode='lines+markers', name='Meat')
-                ],
-                'layout': {
-                    'title': "Pellet Counts",
-                    'xaxis': {
-                        'title': "Simulated Time (seconds)"
-                    },
-                    'yaxis': {
-                        'title': "Pellet Count"
-                    }
-                }
-            }
+            id="pellet-count",
+            style=scenario_graph_style
+        ),
+        dcc.Graph(
+            id="pellet-energy",
+            style=scenario_graph_style
+        ),
+        dcc.Interval(
+            id='interval-component',
+            interval=10000,
+            n_intervals=0
         )
     ])
 
     app.run_server(debug=True, use_reloader=False)
 
-def update_graphs(scene, settings):
-    # Y is going to be the simulated time
-    # X is going to be the count of pellets to start off with
-    # Add additional charts later
-    # Just for Scenario Control and Run 1 for now
-    if settings.scenario != TARGET_EXPERIMENT or str(settings.run_num) != str(TARGET_RUN):
-        return None
-    
-    plant_data = scene.pellets['Plant']
+@app.callback(
+    Output('pellet-count', 'figure'),
+    Output('pellet-energy', 'figure'),
+    Input('interval-component', 'n_intervals')
+)
+def update_graphs(n):
+    pellet_count_fig = {
+        'data': [
+            go.Scatter(x=graph_data['simTime'], y=graph_data['plantPelletCount'], mode='lines+markers', name='Plant'),
+            go.Scatter(x=graph_data['simTime'], y=graph_data['meatPelletCount'], mode='lines+markers', name='Meat')
+        ],
+        'layout': {
+            'title': "Pellet Count",
+            'xaxis': {
+                'title': "Sim Time (s)"
+            },
+            'yaxis': {
+                'title': "Count"
+            }
+        }
+    }
+
+    pellet_energy_fig = {
+        'data': [
+            go.Scatter(x=graph_data['simTime'], y=graph_data['plantPelletEnergy'], mode='lines+markers', name='Plant'),
+            go.Scatter(x=graph_data['simTime'], y=graph_data['meatPelletEnergy'], mode='lines+markers', name='Meat')
+        ],
+        'layout': {
+            'title': "Pellet Energy",
+            'xaxis': {
+                'title': "Sim Time (s)"
+            },
+            'yaxis': {
+                'title': "Energy"
+            }
+        }
+    }
+
+    return pellet_count_fig, pellet_energy_fig
+
+
+def store_graph_data(scene):
     graph_data['simTime'].append(scene.simulatedTime)
+
+    plant_data = scene.pellets['Plant']
     graph_data['plantPelletCount'].append(plant_data['count'])
+    graph_data['plantPelletEnergy'].append(plant_data['energy'])
 
     meat_data = scene.pellets['Meat']
     graph_data['meatPelletCount'].append(meat_data['count'])
+    graph_data['meatPelletEnergy'].append(meat_data['energy'])
 
 
-def process_zipped_save(zippath):
-    #rmtree if TEMP_PATH exists
-    if os.path.exists(TEMP_PATH):
-        shutil.rmtree(TEMP_PATH)
+def process_zipped_save(zippath, savezip=True):
+    if os.path.exists(TEMP_UNARCHIVE_PATH):
+        shutil.rmtree(TEMP_UNARCHIVE_PATH)
 
     with zipfile.ZipFile(zippath, 'r') as zip_ref:
-        zip_ref.extractall(TEMP_PATH)
+        zip_ref.extractall(TEMP_UNARCHIVE_PATH)
 
-    settings = Settings(TEMP_PATH)
-    scene = Scene(settings, TEMP_PATH)
+    # Load the settings and check if this is the experiment we want
+    settings = Settings(TEMP_UNARCHIVE_PATH)
 
-    update_graphs(scene, settings)
+    if settings.scenario != TARGET_EXPERIMENT or str(settings.run_num) != str(TARGET_RUN):
+        return None
+
+    # Process the savefile and update graphs
+    scene = Scene(settings, TEMP_UNARCHIVE_PATH)
+    store_graph_data(scene)
+
+    if savezip:
+        shutil.copy2(zippath, SAVEFILE_ARCHIVE_PATH)
 
 class ZippedAutosaveHandler(FileSystemEventHandler):
     def on_created(self, event):
@@ -231,16 +279,15 @@ class ZippedAutosaveHandler(FileSystemEventHandler):
             return None
         elif event.event_type == 'created':
             print(f"Found new autosave: {event.src_path}")
-            time.sleep(20)
+            time.sleep(5)
             try:
                 process_zipped_save(event.src_path)
-                print(f"Sent new autosave to InfluxDB")
+                print(f"Autosave processed")
             except Exception as e:
                 print(f"Error processing autosave")
                 print(e)
 
 def main(autosaves_path):
-    initialize_graphs()
     event_handler = ZippedAutosaveHandler()
     observer = Observer()
     observer.schedule(event_handler, path=autosaves_path, recursive=False)
@@ -248,6 +295,7 @@ def main(autosaves_path):
     print(f"Watching {autosaves_path} for new autosaves...")
 
     observer.start()
+    initialize_graphs()
 
     try:
         while True:
@@ -262,12 +310,15 @@ if __name__ == "__main__":
     with open("./config.json") as config_file:
         data = config_file.read()
         autosave_path = load_unclean_json_string(data)['autosavePath']
-        savefile_archive_path = load_unclean_json_string(data)['savefileArchivePath']
         TARGET_EXPERIMENT = load_unclean_json_string(data)['experimentName']
         TARGET_RUN = load_unclean_json_string(data)['runNumber']
+        SAVEFILE_ARCHIVE_PATH = f"{load_unclean_json_string(data)['savefileArchivePath']}/{TARGET_EXPERIMENT}/{TARGET_RUN}"
 
-    for filename in os.listdir(savefile_archive_path):
+    if not os.path.exists(SAVEFILE_ARCHIVE_PATH):
+        os.makedirs(SAVEFILE_ARCHIVE_PATH)
+
+    for filename in os.listdir(SAVEFILE_ARCHIVE_PATH):
         if filename.endswith('.zip'):
-            process_zipped_save(savefile_archive_path + "/" + filename)
+            process_zipped_save(SAVEFILE_ARCHIVE_PATH + "/" + filename, savezip=False)
 
     main(autosave_path)
