@@ -72,6 +72,12 @@ class SpeciesRecords:
 class Scene:
     def __init__(self, settings, savedir):
         self.settings = settings
+        
+        # scene
+        with open(savedir + "/scene.bb8scene") as scene_file:
+            data = scene_file.read()
+            scene_data = load_unclean_json_string(data)
+        self.simulatedTime = scene_data['simulatedTime']
 
         # pellets
         with open(savedir + "/pellets.bb8scene") as pellet_file:
@@ -83,32 +89,9 @@ class Scene:
             count, energy = self.get_pellet_count_and_energy_by_material(pellet_material, pellet_data)
             self.pellets[pellet_material] = {'count': count, 'energy': energy}
 
-        # scene
-        with open(savedir + "/scene.bb8scene") as scene_file:
-            data = scene_file.read()
-            scene_data = load_unclean_json_string(data)
-        self.simulatedTime = scene_data['simulatedTime']
-
-
         # bibites
         self.speciesRecords = SpeciesRecords(savedir)
         self.species = self.aggregate_species_data(savedir)
-
-
-    def __str__(self):
-        simulatedTimeString = datetime.timedelta(seconds=self.simulatedTime)
-        string = f"Scene:\nSimulated Time: {simulatedTimeString}\n\n"
-        for pellet_material in self.pellets:
-            string += f"{pellet_material} pellets: {self.pellets[pellet_material]['count']}\n"
-            string += f"{pellet_material} energy: {self.pellets[pellet_material]['energy']}\n"
-            string += "\n"
-        
-        for species_name in self.species:
-            string += f"{species_name} count: {self.species[species_name]['count']}\n"
-            string += f"{species_name} total energy: {self.species[species_name]['totalEnergy']}\n"
-            string += "\n"
-        
-        return string
     
     def get_pellet_count_and_energy_by_material(self, material, pellet_zones):
         count = 0
@@ -117,8 +100,8 @@ class Scene:
         material_settings = self.settings.materials[f"{material}Settings"]
 
         for zone in pellet_zones['pellets']:
-            zone_pellets = zone['pellets']
-            for pellet in zone_pellets:
+            pellet_zone = zone['pellets']
+            for pellet in pellet_zone:
                 pellet_data = pellet['pellet']
                 if pellet_data['material'] == material:
                     count += 1
@@ -128,39 +111,41 @@ class Scene:
 
     def aggregate_species_data(self, savedir):
         species = {}
+        bibites_dir = savedir + "/bibites"
 
-        for filename in os.listdir(savedir + "/bibites"):
+        for filename in os.listdir(bibites_dir):
             if filename.endswith('.bb8'):
-                with open(savedir + "/bibites/" + filename) as bibite_file:
+                with open(f"{bibites_dir}/{filename}") as bibite_file:
                     data = bibite_file.read()
                     bibite_data = load_unclean_json_string(data)
+                
+                bibit_species_id = bibite_data["genes"]["speciesID"]
+                species_name = self.speciesRecords.getSpeciesNameByID(bibit_species_id)
 
-                bibit_id = bibite_data["genes"]["speciesID"]
-                bibite_name = self.speciesRecords.getSpeciesNameByID(bibit_id)
-
+                if species_name not in species:
+                    species[species_name] = {'count': 0, 'totalEnergy': 0, 'gene_lists': {}}
+                
                 bibite_total_energy = bibite_data["body"]["totalEnergy"]
-                
-                if bibite_name not in species:
-                    species[bibite_name] = {'count': 0, 'totalEnergy': 0, 'gene_lists': {}}
-                
-                species[bibite_name]['count'] += 1
-                species[bibite_name]['totalEnergy'] += bibite_total_energy
+                species[species_name]['totalEnergy'] += bibite_total_energy
+                species[species_name]['count'] += 1
 
-                for gene_name in bibite_data["genes"]["genes"]:
-                    if gene_name not in species[bibite_name]['gene_lists']:
-                        species[bibite_name]['gene_lists'][gene_name] = []
-                    
-                    gene_value = bibite_data["genes"]["genes"][gene_name]
-                    species[bibite_name]['gene_lists'][gene_name].append(gene_value)
-                    # Store all of the gene values for this species in a list so that we can do work on it later
+                # Store all of the gene values for this species in a list so that we can do work on it later
+                bibite_gene_data = bibite_data["genes"]["genes"]
+                for gene_name in bibite_gene_data:
+                    bibite_gene_lists = species[species_name]['gene_lists']
+                    if gene_name not in bibite_gene_lists:
+                        bibite_gene_lists[gene_name] = []
+
+                    gene_value = bibite_gene_data[gene_name]
+                    bibite_gene_lists[gene_name].append(gene_value)
         
-        #Calculate Gene info
+        #Calculate Gene stats
         for species_name in species:
             species_data = species[species_name]
-            species[species_name]["gene_data"] = {}
+            species_data["gene_data"] = {}
             for gene_name in species_data['gene_lists']:
                 gene_values = species_data['gene_lists'][gene_name]
-                species[species_name]["gene_data"][gene_name] = {
+                species_data["gene_data"][gene_name] = {
                     "mean": mean(gene_values),
                     "median": median(gene_values),
                     "min": min(gene_values),
@@ -209,7 +194,7 @@ def initialize_graphs():
             id="pellet-energy",
             style=scenario_graph_style
         ),
-        html.H2(f"Bibite Species {SPECIES_TO_MONITOR}"),
+        html.H2(f"{SPECIES_TO_MONITOR}"),
     ] + [dcc.Graph(id=gene_name, style=species_graph_style) for gene_name in GENES_TO_MONITOR])
 
     app.run_server(debug=True, use_reloader=False)
@@ -256,7 +241,10 @@ def update_graphs(n):
     for gene_name in GENES_TO_MONITOR:
         gene_fig = {
             'data': [
-                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_mean"], mode='lines+markers', name=gene_name)
+                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_mean"], mode='lines+markers', name="mean"),
+                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_median"], mode='lines+markers', name="median"),
+                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_min"], mode='lines+markers', name="min"),
+                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_max"], mode='lines+markers', name="max")
             ],
             'layout': {
                 'title': f"{gene_name}",
@@ -264,7 +252,7 @@ def update_graphs(n):
                     'title': "Sim Time (s)"
                 },
                 'yaxis': {
-                    'title': "mean",
+                    'title': "amount",
                     'rangemode': 'tozero'
                 }
             }
@@ -299,8 +287,14 @@ def store_graph_data(scene):
             gene_data = species_data['gene_data'][gene_name]
             if f"{gene_name}_mean" not in graph_data:
                 graph_data[f"{gene_name}_mean"] = []
+                graph_data[f"{gene_name}_median"] = []
+                graph_data[f"{gene_name}_min"] = []
+                graph_data[f"{gene_name}_max"] = []
             
             graph_data[f"{gene_name}_mean"].append(gene_data['mean'])
+            graph_data[f"{gene_name}_median"].append(gene_data['median'])
+            graph_data[f"{gene_name}_min"].append(gene_data['min'])
+            graph_data[f"{gene_name}_max"].append(gene_data['max'])
 
 
 def process_zipped_save(zippath, savezip=True):
@@ -364,8 +358,12 @@ if __name__ == "__main__":
     if not os.path.exists(SAVEFILE_ARCHIVE_PATH):
         os.makedirs(SAVEFILE_ARCHIVE_PATH)
 
-    for filename in os.listdir(SAVEFILE_ARCHIVE_PATH):
-        if filename.endswith('.zip'):
-            process_zipped_save(SAVEFILE_ARCHIVE_PATH + "/" + filename, savezip=False)
+    zip_files = [f for f in os.listdir(SAVEFILE_ARCHIVE_PATH) if f.endswith('.zip')]
+
+    savefiles_processed = 1
+    for filename in zip_files:
+        process_zipped_save(SAVEFILE_ARCHIVE_PATH + "/" + filename, savezip=False)
+        print(f"{savefiles_processed}/{len(zip_files)} preexisting saves added")
+        savefiles_processed += 1
 
     main(autosave_path)
