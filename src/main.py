@@ -199,7 +199,6 @@ def initialize_graphs():
     app.layout = html.Div(style=dark_layout_style, children=[
         html.H1("Bibite Analytics"),
         html.H2(f"Experiment: {TARGET_EXPERIMENT} | Run #: {TARGET_RUN}"),
-        dcc.Dropdown(id='species-dropdown', options=[]),
         dcc.Interval(
             id='interval-component',
             interval=10000,
@@ -213,6 +212,7 @@ def initialize_graphs():
             id="pellet-energy",
             style=scenario_graph_style
         ),
+        dcc.Dropdown(['Basic bibite'], 'Basic bibite', id='species-dropdown'),
         html.H2(f"{SPECIES_TO_MONITOR}"),
         dcc.Graph(
             id="bibite-count",
@@ -225,6 +225,19 @@ def initialize_graphs():
     ] + [dcc.Graph(id=gene_name, style=species_graph_style) for gene_name in GENES_TO_MONITOR])
 
     app.run_server(debug=True, use_reloader=False)
+
+# Callback to update the dropdown's options based on species_names
+@app.callback(
+    Output('species-dropdown', 'options'),
+    Input('interval-component', 'n_intervals')
+)
+def update_dropdown(n):
+    #species names from the keys in graph_data['species']
+    species_names = list(graph_data['species'].keys())
+
+    # Convert species_names to the format needed by the dropdown
+    options = [{'label': name, 'value': name} for name in species_names]
+    return options
 
 outputs = [Output('pellet-count', 'figure'), Output('pellet-energy', 'figure'), Output('bibite-count', 'figure'), Output('bibite-energy', 'figure')] + [Output(gene_name, 'figure') for gene_name in GENES_TO_MONITOR]
 @app.callback(
