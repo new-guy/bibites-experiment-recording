@@ -195,6 +195,9 @@ def initialize_graphs():
         'display': 'inline-block',
         'padding': '0 10px'
     }
+    dropdown_style = {
+        'width': '50%'
+    }
 
     app.layout = html.Div(style=dark_layout_style, children=[
         html.H1("Bibite Analytics"),
@@ -212,8 +215,8 @@ def initialize_graphs():
             id="pellet-energy",
             style=scenario_graph_style
         ),
-        dcc.Dropdown(['Basic bibite'], 'Basic bibite', id='species-dropdown'),
-        html.H2(f"{SPECIES_TO_MONITOR}"),
+        dcc.Dropdown(['Basic bibite'], 'Basic bibite', id='species-dropdown', style=dropdown_style),
+        html.H2(id="species-to-monitor", children=f"{SPECIES_TO_MONITOR}"),
         dcc.Graph(
             id="bibite-count",
             style=scenario_graph_style
@@ -238,6 +241,17 @@ def update_dropdown(n):
     # Convert species_names to the format needed by the dropdown
     options = [{'label': name, 'value': name} for name in species_names]
     return options
+
+@app.callback(
+    Output('species-to-monitor', 'children'),
+    Input('species-dropdown', 'value')
+)
+def update_species_to_monitor(selected_species):
+    global SPECIES_TO_MONITOR
+    SPECIES_TO_MONITOR = selected_species
+    if selected_species is None:
+        return "No species selected."
+    return selected_species
 
 outputs = [Output('pellet-count', 'figure'), Output('pellet-energy', 'figure'), Output('bibite-count', 'figure'), Output('bibite-energy', 'figure')] + [Output(gene_name, 'figure') for gene_name in GENES_TO_MONITOR]
 @app.callback(
