@@ -7,13 +7,14 @@ import shutil
 import time
 from statistics import mean, median
 
-from influxdb_client import InfluxDBClient, Point
-from influxdb_client.client.write_api import SYNCHRONOUS
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-TEMP_PATH = "./temp_unzipped_save"
-PELLET_MATERIALS = ['Plant', 'Meat']
+import dash
+from dash import dcc, html
+from dash.dependencies import Input, Output
+import plotly.graph_objects as go
+
 
 def load_unclean_json_string(input_str):
     # Remove non-printable characters and weird whitespace
@@ -26,6 +27,18 @@ def load_unclean_json_string(input_str):
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON: {e}")
         return None
+
+with open("./config.json") as config_file:
+    data = config_file.read()
+    autosave_path = load_unclean_json_string(data)['autosavePath']
+    TARGET_EXPERIMENT = load_unclean_json_string(data)['experimentName']
+    TARGET_RUN = load_unclean_json_string(data)['runNumber']
+    SAVEFILE_ARCHIVE_PATH = f"{load_unclean_json_string(data)['savefileArchivePath']}/{TARGET_EXPERIMENT}/{TARGET_RUN}"
+    GENES_TO_MONITOR = load_unclean_json_string(data)['genesToMonitor']
+    SPECIES_TO_MONITOR = load_unclean_json_string(data)['speciesToMonitor']
+
+TEMP_UNARCHIVE_PATH = "./temp_unzipped_save"
+PELLET_MATERIALS = ['Plant', 'Meat']
     
 class Settings:
     def __init__(self, savedir):
@@ -59,6 +72,12 @@ class SpeciesRecords:
 class Scene:
     def __init__(self, settings, savedir):
         self.settings = settings
+        
+        # scene
+        with open(savedir + "/scene.bb8scene") as scene_file:
+            data = scene_file.read()
+            scene_data = load_unclean_json_string(data)
+        self.simulatedTime = scene_data['simulatedTime']
 
         # pellets
         with open(savedir + "/pellets.bb8scene") as pellet_file:
@@ -70,32 +89,9 @@ class Scene:
             count, energy = self.get_pellet_count_and_energy_by_material(pellet_material, pellet_data)
             self.pellets[pellet_material] = {'count': count, 'energy': energy}
 
-        # scene
-        with open(savedir + "/scene.bb8scene") as scene_file:
-            data = scene_file.read()
-            scene_data = load_unclean_json_string(data)
-        self.simulatedTime = scene_data['simulatedTime']
-
-
         # bibites
         self.speciesRecords = SpeciesRecords(savedir)
         self.species = self.aggregate_species_data(savedir)
-
-
-    def __str__(self):
-        simulatedTimeString = datetime.timedelta(seconds=self.simulatedTime)
-        string = f"Scene:\nSimulated Time: {simulatedTimeString}\n\n"
-        for pellet_material in self.pellets:
-            string += f"{pellet_material} pellets: {self.pellets[pellet_material]['count']}\n"
-            string += f"{pellet_material} energy: {self.pellets[pellet_material]['energy']}\n"
-            string += "\n"
-        
-        for species_name in self.species:
-            string += f"{species_name} count: {self.species[species_name]['count']}\n"
-            string += f"{species_name} total energy: {self.species[species_name]['totalEnergy']}\n"
-            string += "\n"
-        
-        return string
     
     def get_pellet_count_and_energy_by_material(self, material, pellet_zones):
         count = 0
@@ -104,8 +100,8 @@ class Scene:
         material_settings = self.settings.materials[f"{material}Settings"]
 
         for zone in pellet_zones['pellets']:
-            zone_pellets = zone['pellets']
-            for pellet in zone_pellets:
+            pellet_zone = zone['pellets']
+            for pellet in pellet_zone:
                 pellet_data = pellet['pellet']
                 if pellet_data['material'] == material:
                     count += 1
@@ -115,39 +111,41 @@ class Scene:
 
     def aggregate_species_data(self, savedir):
         species = {}
+        bibites_dir = savedir + "/bibites"
 
-        for filename in os.listdir(savedir + "/bibites"):
+        for filename in os.listdir(bibites_dir):
             if filename.endswith('.bb8'):
-                with open(savedir + "/bibites/" + filename) as bibite_file:
+                with open(f"{bibites_dir}/{filename}") as bibite_file:
                     data = bibite_file.read()
                     bibite_data = load_unclean_json_string(data)
+                
+                bibit_species_id = bibite_data["genes"]["speciesID"]
+                species_name = self.speciesRecords.getSpeciesNameByID(bibit_species_id)
 
-                bibit_id = bibite_data["genes"]["speciesID"]
-                bibite_name = self.speciesRecords.getSpeciesNameByID(bibit_id)
-
+                if species_name not in species:
+                    species[species_name] = {'count': 0, 'totalEnergy': 0, 'gene_lists': {}}
+                
                 bibite_total_energy = bibite_data["body"]["totalEnergy"]
-                
-                if bibite_name not in species:
-                    species[bibite_name] = {'count': 0, 'totalEnergy': 0, 'gene_lists': {}}
-                
-                species[bibite_name]['count'] += 1
-                species[bibite_name]['totalEnergy'] += bibite_total_energy
+                species[species_name]['totalEnergy'] += bibite_total_energy
+                species[species_name]['count'] += 1
 
-                for gene_name in bibite_data["genes"]["genes"]:
-                    if gene_name not in species[bibite_name]['gene_lists']:
-                        species[bibite_name]['gene_lists'][gene_name] = []
-                    
-                    gene_value = bibite_data["genes"]["genes"][gene_name]
-                    species[bibite_name]['gene_lists'][gene_name].append(gene_value)
-                    # Store all of the gene values for this species in a list so that we can do work on it later
+                # Store all of the gene values for this species in a list so that we can do work on it later
+                bibite_gene_data = bibite_data["genes"]["genes"]
+                for gene_name in bibite_gene_data:
+                    bibite_gene_lists = species[species_name]['gene_lists']
+                    if gene_name not in bibite_gene_lists:
+                        bibite_gene_lists[gene_name] = []
+
+                    gene_value = bibite_gene_data[gene_name]
+                    bibite_gene_lists[gene_name].append(gene_value)
         
-        #Calculate Gene info
+        #Calculate Gene stats
         for species_name in species:
             species_data = species[species_name]
-            species[species_name]["gene_data"] = {}
+            species_data["gene_data"] = {}
             for gene_name in species_data['gene_lists']:
                 gene_values = species_data['gene_lists'][gene_name]
-                species[species_name]["gene_data"][gene_name] = {
+                species_data["gene_data"][gene_name] = {
                     "mean": mean(gene_values),
                     "median": median(gene_values),
                     "min": min(gene_values),
@@ -156,74 +154,168 @@ class Scene:
         
         return species
 
-def init_influx_client():
-    with open("./config.json") as config_file:
-        data = config_file.read()
-        influx_config = load_unclean_json_string(data)
+
+graph_data = {
+    'simTime': [],
+    'plantPelletCount': [],
+    'meatPelletCount': [],
+    'plantPelletEnergy': [],
+    'meatPelletEnergy': []
+}
+
+app = dash.Dash(__name__)
+def initialize_graphs():
+    scenario_graph_style = {
+        'width': '45%',
+        'height': '400px',
+        'display': 'inline-block',
+        'padding': '0 20px'
+    }
+    species_graph_style = {
+        'width': '45%',
+        'height': '300px',
+        'display': 'inline-block',
+        'padding': '0 20px'
+    }
+
+    app.layout = html.Div([
+        html.H1("Bibite Analytics"),
+        html.H2(f"Scenario {TARGET_EXPERIMENT} Run {TARGET_RUN}"),
+        dcc.Interval(
+            id='interval-component',
+            interval=10000,
+            n_intervals=0
+        ),
+        dcc.Graph(
+            id="pellet-count",
+            style=scenario_graph_style
+        ),
+        dcc.Graph(
+            id="pellet-energy",
+            style=scenario_graph_style
+        ),
+        html.H2(f"{SPECIES_TO_MONITOR}"),
+    ] + [dcc.Graph(id=gene_name, style=species_graph_style) for gene_name in GENES_TO_MONITOR])
+
+    app.run_server(debug=True, use_reloader=False)
+
+outputs = [Output('pellet-count', 'figure'), Output('pellet-energy', 'figure')] + [Output(gene_name, 'figure') for gene_name in GENES_TO_MONITOR]
+@app.callback(
+    outputs,
+    Input('interval-component', 'n_intervals')
+)
+def update_graphs(n):
+    pellet_count_fig = {
+        'data': [
+            go.Scatter(x=graph_data['simTime'], y=graph_data['plantPelletCount'], mode='lines+markers', name='Plant'),
+            go.Scatter(x=graph_data['simTime'], y=graph_data['meatPelletCount'], mode='lines+markers', name='Meat')
+        ],
+        'layout': {
+            'title': "Pellet Count",
+            'xaxis': {
+                'title': "Sim Time (s)"
+            },
+            'yaxis': {
+                'title': "Count"
+            }
+        }
+    }
+
+    pellet_energy_fig = {
+        'data': [
+            go.Scatter(x=graph_data['simTime'], y=graph_data['plantPelletEnergy'], mode='lines+markers', name='Plant'),
+            go.Scatter(x=graph_data['simTime'], y=graph_data['meatPelletEnergy'], mode='lines+markers', name='Meat')
+        ],
+        'layout': {
+            'title': "Pellet Energy",
+            'xaxis': {
+                'title': "Sim Time (s)"
+            },
+            'yaxis': {
+                'title': "Energy"
+            }
+        }
+    }
+
+    gene_figs = []
+    for gene_name in GENES_TO_MONITOR:
+        gene_fig = {
+            'data': [
+                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_mean"], mode='lines+markers', name="mean"),
+                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_median"], mode='lines+markers', name="median"),
+                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_min"], mode='lines+markers', name="min"),
+                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_max"], mode='lines+markers', name="max")
+            ],
+            'layout': {
+                'title': f"{gene_name}",
+                'xaxis': {
+                    'title': "Sim Time (s)"
+                },
+                'yaxis': {
+                    'title': "amount",
+                    'rangemode': 'tozero'
+                }
+            }
+        }
+        gene_figs.append(gene_fig)
     
-    url = influx_config["url"]
-    token = influx_config["token"]
-    org = influx_config["org"]
-    bucket = influx_config["bucket"]
+    response = (pellet_count_fig, pellet_energy_fig) + tuple(gene_figs)
 
-    client = InfluxDBClient(url=url, token=token, org=org)
+    return response
 
-    return client, bucket, org
 
-def write_to_influx(scene, settings, client, bucket, org):
-    write_api = client.write_api(write_options=SYNCHRONOUS)
+def store_graph_data(scene):
+    graph_data['simTime'].append(scene.simulatedTime)
+
+    plant_data = scene.pellets['Plant']
+    graph_data['plantPelletCount'].append(plant_data['count'])
+    graph_data['plantPelletEnergy'].append(plant_data['energy'])
+
+    meat_data = scene.pellets['Meat']
+    graph_data['meatPelletCount'].append(meat_data['count'])
+    graph_data['meatPelletEnergy'].append(meat_data['energy'])
+
     for species_name in scene.species:
+        if species_name != SPECIES_TO_MONITOR:
+            continue
+
         species_data = scene.species[species_name]
-        census_point = (
-            Point("census")
-            .tag("scenario", settings.scenario)
-            .tag("run", settings.run_num)
-            .tag("species", species_name)
-            .field("count", species_data["count"])
-            .field("totalEnergy", species_data["totalEnergy"])
-        )
-
-        for gene_name in species_data["gene_data"]:
-            gene_data = species_data["gene_data"][gene_name]
-            census_point.field(f"{gene_name}_mean", gene_data["mean"])
-            census_point.field(f"{gene_name}_median", gene_data["median"])
-            census_point.field(f"{gene_name}_min", gene_data["min"])
-            census_point.field(f"{gene_name}_max", gene_data["max"])
-
-        write_api.write(bucket, org, census_point)
-
-    for pellet_material in scene.pellets:
-        pellet_data = scene.pellets[pellet_material]
-        pellet_point = (
-            Point("pellets")
-            .tag("scenario", settings.scenario)
-            .tag("run", settings.run_num)
-            .tag("material", pellet_material)
-            .field("count", pellet_data["count"])
-            .field("energy", float(pellet_data["energy"]))
-        )
-
-        write_api.write(bucket, org, pellet_point)
+        for gene_name in species_data['gene_data']:
+            if gene_name not in GENES_TO_MONITOR:
+                continue
+            
+            gene_data = species_data['gene_data'][gene_name]
+            if f"{gene_name}_mean" not in graph_data:
+                graph_data[f"{gene_name}_mean"] = []
+                graph_data[f"{gene_name}_median"] = []
+                graph_data[f"{gene_name}_min"] = []
+                graph_data[f"{gene_name}_max"] = []
+            
+            graph_data[f"{gene_name}_mean"].append(gene_data['mean'])
+            graph_data[f"{gene_name}_median"].append(gene_data['median'])
+            graph_data[f"{gene_name}_min"].append(gene_data['min'])
+            graph_data[f"{gene_name}_max"].append(gene_data['max'])
 
 
-def process_save_dir(savedir, client, bucket, org):
-    # read scene.bb8scene as a json file into an object from the save dir
-    settings = Settings(savedir)
-    scene = Scene(settings, savedir)
-    write_to_influx(scene, settings, client, bucket, org)
-    client.close()
-
-def process_zipped_save(zippath):
-    client, bucket, org = init_influx_client()
-
-    #rmtree if TEMP_PATH exists
-    if os.path.exists(TEMP_PATH):
-        shutil.rmtree(TEMP_PATH)
+def process_zipped_save(zippath, savezip=True):
+    if os.path.exists(TEMP_UNARCHIVE_PATH):
+        shutil.rmtree(TEMP_UNARCHIVE_PATH)
 
     with zipfile.ZipFile(zippath, 'r') as zip_ref:
-        zip_ref.extractall(TEMP_PATH)
+        zip_ref.extractall(TEMP_UNARCHIVE_PATH)
 
-    process_save_dir(TEMP_PATH, client, bucket, org)
+    # Load the settings and check if this is the experiment we want
+    settings = Settings(TEMP_UNARCHIVE_PATH)
+
+    if settings.scenario != TARGET_EXPERIMENT or str(settings.run_num) != str(TARGET_RUN):
+        return None
+
+    # Process the savefile and update graphs
+    scene = Scene(settings, TEMP_UNARCHIVE_PATH)
+    store_graph_data(scene)
+
+    if savezip:
+        shutil.copy2(zippath, SAVEFILE_ARCHIVE_PATH)
 
 class ZippedAutosaveHandler(FileSystemEventHandler):
     def on_created(self, event):
@@ -231,10 +323,10 @@ class ZippedAutosaveHandler(FileSystemEventHandler):
             return None
         elif event.event_type == 'created':
             print(f"Found new autosave: {event.src_path}")
-            time.sleep(20)
+            time.sleep(5)
             try:
                 process_zipped_save(event.src_path)
-                print(f"Sent new autosave to InfluxDB")
+                print(f"Autosave processed")
             except Exception as e:
                 print(f"Error processing autosave")
                 print(e)
@@ -247,6 +339,7 @@ def main(autosaves_path):
     print(f"Watching {autosaves_path} for new autosaves...")
 
     observer.start()
+    initialize_graphs()
 
     try:
         while True:
@@ -261,4 +354,16 @@ if __name__ == "__main__":
     with open("./config.json") as config_file:
         data = config_file.read()
         autosave_path = load_unclean_json_string(data)['autosavePath']
+
+    if not os.path.exists(SAVEFILE_ARCHIVE_PATH):
+        os.makedirs(SAVEFILE_ARCHIVE_PATH)
+
+    zip_files = [f for f in os.listdir(SAVEFILE_ARCHIVE_PATH) if f.endswith('.zip')]
+
+    savefiles_processed = 1
+    for filename in zip_files:
+        process_zipped_save(SAVEFILE_ARCHIVE_PATH + "/" + filename, savezip=False)
+        print(f"{savefiles_processed}/{len(zip_files)} preexisting saves added")
+        savefiles_processed += 1
+
     main(autosave_path)
