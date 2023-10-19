@@ -1,5 +1,6 @@
 import json
 import re
+import io
 import os
 import zipfile
 import shutil
@@ -36,13 +37,12 @@ with open("./config.json") as config_file:
     GENES_TO_MONITOR = load_unclean_json_string(data)['genesToMonitor']
     SPECIES_TO_MONITOR = load_unclean_json_string(data)['speciesToMonitor']
 
-TEMP_UNARCHIVE_PATH = "./temp_unzipped_save"
 PELLET_MATERIALS = ['Plant', 'Meat']
     
 class Settings:
-    def __init__(self, savedir):
-        with open(savedir + "/settings.bb8settings") as settings_file:
-            data = settings_file.read()
+    def __init__(self, archive):
+        with archive.open("settings.bb8settings") as settings_file:
+            data = settings_file.read().decode("utf-8")
             settings_data = load_unclean_json_string(data)
 
         self.materials = settings_data['materials']
@@ -50,9 +50,9 @@ class Settings:
         self.run_num = settings_data['zones'][0]["name"].split(" ")[1]
 
 class SpeciesRecords:
-    def __init__(self, savedir):
-        with open(savedir + "/speciesData.json") as species_file:
-            data = species_file.read()
+    def __init__(self, archive):
+        with archive.open("speciesData.json") as species_file:
+            data = species_file.read().decode("utf-8")
             records = load_unclean_json_string(data)["recordedSpecies"]
         
         self.species = {}
@@ -69,18 +69,18 @@ class SpeciesRecords:
 
 # define a class for a scene
 class Scene:
-    def __init__(self, settings, savedir):
+    def __init__(self, settings, archive):
         self.settings = settings
         
         # scene
-        with open(savedir + "/scene.bb8scene") as scene_file:
-            data = scene_file.read()
+        with archive.open("scene.bb8scene") as scene_file:
+            data = scene_file.read().decode("utf-8")
             scene_data = load_unclean_json_string(data)
         self.simulatedTime = scene_data['simulatedTime']
 
         # pellets
-        with open(savedir + "/pellets.bb8scene") as pellet_file:
-            data = pellet_file.read()
+        with archive.open("pellets.bb8scene") as pellet_file:
+            data = pellet_file.read().decode("utf-8")
             pellet_data = load_unclean_json_string(data)
 
         self.pellets = {}
@@ -89,8 +89,8 @@ class Scene:
             self.pellets[pellet_material] = {'count': count, 'energy': energy}
 
         # bibites
-        self.speciesRecords = SpeciesRecords(savedir)
-        self.species = self.aggregate_species_data(savedir)
+        self.speciesRecords = SpeciesRecords(archive)
+        self.species = self.aggregate_species_data(archive)
     
     def get_pellet_count_and_energy_by_material(self, material, pellet_zones):
         count = 0
@@ -108,35 +108,35 @@ class Scene:
         
         return count, energy
 
-    def aggregate_species_data(self, savedir):
+    def aggregate_species_data(self, archive):
         species = {}
-        bibites_dir = savedir + "/bibites"
+        bibites_dir = "bibites/"
 
-        for filename in os.listdir(bibites_dir):
-            if filename.endswith('.bb8'):
-                with open(f"{bibites_dir}/{filename}") as bibite_file:
-                    data = bibite_file.read()
-                    bibite_data = load_unclean_json_string(data)
-                
-                bibit_species_id = bibite_data["genes"]["speciesID"]
-                species_name = self.speciesRecords.getSpeciesNameByID(bibit_species_id)
+        bibites_filenames = [name for name in archive.namelist() if (name.startswith(bibites_dir) and name.endswith('bb8'))]
+        for filename in bibites_filenames:
+            with archive.open(f"{filename}") as bibite_file:
+                data = bibite_file.read().decode("utf-8")
+                bibite_data = load_unclean_json_string(data)
+            
+            bibit_species_id = bibite_data["genes"]["speciesID"]
+            species_name = self.speciesRecords.getSpeciesNameByID(bibit_species_id)
 
-                if species_name not in species:
-                    species[species_name] = {'count': 0, 'totalEnergy': 0, 'gene_lists': {}}
-                
-                bibite_total_energy = bibite_data["body"]["totalEnergy"]
-                species[species_name]['totalEnergy'] += bibite_total_energy
-                species[species_name]['count'] += 1
+            if species_name not in species:
+                species[species_name] = {'count': 0, 'totalEnergy': 0, 'gene_lists': {}}
+            
+            bibite_total_energy = bibite_data["body"]["totalEnergy"]
+            species[species_name]['totalEnergy'] += bibite_total_energy
+            species[species_name]['count'] += 1
 
-                # Store all of the gene values for this species in a list so that we can do work on it later
-                bibite_gene_data = bibite_data["genes"]["genes"]
-                for gene_name in bibite_gene_data:
-                    bibite_gene_lists = species[species_name]['gene_lists']
-                    if gene_name not in bibite_gene_lists:
-                        bibite_gene_lists[gene_name] = []
+            # Store all of the gene values for this species in a list so that we can do work on it later
+            bibite_gene_data = bibite_data["genes"]["genes"]
+            for gene_name in bibite_gene_data:
+                bibite_gene_lists = species[species_name]['gene_lists']
+                if gene_name not in bibite_gene_lists:
+                    bibite_gene_lists[gene_name] = []
 
-                    gene_value = bibite_gene_data[gene_name]
-                    bibite_gene_lists[gene_name].append(gene_value)
+                gene_value = bibite_gene_data[gene_name]
+                bibite_gene_lists[gene_name].append(gene_value)
         
         #Calculate Gene stats
         for species_name in species:
@@ -423,26 +423,21 @@ def store_graph_data(scene):
 
 
 def process_zipped_save(zippath, savezip=True):
-    if os.path.exists(TEMP_UNARCHIVE_PATH):
-        shutil.rmtree(TEMP_UNARCHIVE_PATH)
+    with open(zippath, 'rb') as f:
+        zip_data = io.BytesIO(f.read())
 
-    with zipfile.ZipFile(zippath, 'r') as zip_ref:
-        zip_ref.extractall(TEMP_UNARCHIVE_PATH)
+    with zipfile.ZipFile(zip_data, 'r') as archive:
+        settings = Settings(archive)
 
-    time.sleep(5)
+        if settings.scenario != TARGET_EXPERIMENT or str(settings.run_num) != str(TARGET_RUN):
+            return None
 
-    # Load the settings and check if this is the experiment we want
-    settings = Settings(TEMP_UNARCHIVE_PATH)
+        # Process the savefile and update graphs
+        scene = Scene(settings, archive)
+        store_graph_data(scene)
 
-    if settings.scenario != TARGET_EXPERIMENT or str(settings.run_num) != str(TARGET_RUN):
-        return None
-
-    # Process the savefile and update graphs
-    scene = Scene(settings, TEMP_UNARCHIVE_PATH)
-    store_graph_data(scene)
-
-    if savezip:
-        shutil.copy2(zippath, SAVEFILE_ARCHIVE_PATH)
+        if savezip:
+            shutil.copy2(zippath, SAVEFILE_ARCHIVE_PATH)
 
 class ZippedAutosaveHandler(FileSystemEventHandler):
     def on_created(self, event):
