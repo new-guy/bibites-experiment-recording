@@ -1,6 +1,5 @@
 import json
 import re
-import datetime
 import os
 import zipfile
 import shutil
@@ -172,15 +171,15 @@ def initialize_graphs():
         'padding': '0 20px'
     }
     species_graph_style = {
-        'width': '45%',
-        'height': '300px',
+        'width': '30%',
+        'height': '250px',
         'display': 'inline-block',
-        'padding': '0 20px'
+        'padding': '0 10px'
     }
 
     app.layout = html.Div([
         html.H1("Bibite Analytics"),
-        html.H2(f"Scenario {TARGET_EXPERIMENT} Run {TARGET_RUN}"),
+        html.H2(f"Experiment: {TARGET_EXPERIMENT} | Run #: {TARGET_RUN}"),
         dcc.Interval(
             id='interval-component',
             interval=10000,
@@ -195,7 +194,7 @@ def initialize_graphs():
             style=scenario_graph_style
         ),
         html.H2(f"{SPECIES_TO_MONITOR}"),
-    ] + [dcc.Graph(id=gene_name, style=species_graph_style) for gene_name in GENES_TO_MONITOR])
+    ] + [dcc.Graph(id=gene_name, style=species_graph_style, config={'responsive': True}) for gene_name in GENES_TO_MONITOR])
 
     app.run_server(debug=True, use_reloader=False)
 
@@ -248,12 +247,16 @@ def update_graphs(n):
             ],
             'layout': {
                 'title': f"{gene_name}",
-                'xaxis': {
-                    'title': "Sim Time (s)"
-                },
+                'title_font': {'size': 10},
                 'yaxis': {
-                    'title': "amount",
                     'rangemode': 'tozero'
+                },
+                'showlegend': False,
+                'margin': {
+                    'l': 20,
+                    'r': 20,
+                    'b': 30,
+                    't': 30
                 }
             }
         }

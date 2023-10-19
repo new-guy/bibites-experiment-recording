@@ -11,8 +11,10 @@ This will also save all of the files it records to a folder called `save_archive
 Also, I use the term `experiment` to refer to any individual timeline of a run in the Bibites simulator.  Science!
 
 ### Limitations
+- Can only look at data from one experiment at a time
+- Can only look at one species from an experiment at a time
 
-
+![image](dashboard_example.png)
 
 ## Setup - Local
 
