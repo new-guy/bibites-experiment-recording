@@ -35,10 +35,9 @@ Use `pip` or `pip3` or `python3 -m pip` or whatever with the `-r requirements.tx
         "token": "[that token you made]",
         "org": "[top left word in the influxdb cloud page.  Influxdb calls it your account in some places on their UI.  Don't trust them]",
         "bucket": "[the bucket you made]",
-        "autosavePath": "[path to where your game autosaves]"
+        "autosavePath": "[path to where your game autosaves]",
+        "savefileArchivePath": "[path to all of your autosaves that you've archived]"
     }
-
-![image](config_example.png)
 
 ## Setup - Bibites
 

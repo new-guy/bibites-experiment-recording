@@ -7,13 +7,18 @@ import shutil
 import time
 from statistics import mean, median
 
-from influxdb_client import InfluxDBClient, Point
-from influxdb_client.client.write_api import SYNCHRONOUS
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
+import dash
+from dash import dcc, html
+from dash.dependencies import Input, Output
+import plotly.graph_objects as go
+
 TEMP_PATH = "./temp_unzipped_save"
 PELLET_MATERIALS = ['Plant', 'Meat']
+TARGET_EXPERIMENT = ""
+TARGET_RUN = ""
 
 def load_unclean_json_string(input_str):
     # Remove non-printable characters and weird whitespace
@@ -156,66 +161,58 @@ class Scene:
         
         return species
 
-def init_influx_client():
-    with open("./config.json") as config_file:
-        data = config_file.read()
-        influx_config = load_unclean_json_string(data)
+
+graph_data = {
+    'simTime': [],
+    'plantPelletCount': [],
+    'meatPelletCount': []
+}
+
+app = dash.Dash(__name__)
+def initialize_graphs():
+    app.layout = html.Div([
+        html.H1("Bibite Analytics"),
+        html.H2(f"Scenario {TARGET_EXPERIMENT} Run {TARGET_RUN}"),
+
+        dcc.Graph(
+            id="pellet-counts",
+            figure={
+                'data': [
+                    go.Scatter(x=graph_data['simTime'], y=graph_data['plantPelletCount'], mode='lines+markers', name='Plant'),
+                    go.Scatter(x=graph_data['simTime'], y=graph_data['meatPelletCount'], mode='lines+markers', name='Meat')
+                ],
+                'layout': {
+                    'title': "Pellet Counts",
+                    'xaxis': {
+                        'title': "Simulated Time (seconds)"
+                    },
+                    'yaxis': {
+                        'title': "Pellet Count"
+                    }
+                }
+            }
+        )
+    ])
+
+    app.run_server(debug=True, use_reloader=False)
+
+def update_graphs(scene, settings):
+    # Y is going to be the simulated time
+    # X is going to be the count of pellets to start off with
+    # Add additional charts later
+    # Just for Scenario Control and Run 1 for now
+    if settings.scenario != TARGET_EXPERIMENT or str(settings.run_num) != str(TARGET_RUN):
+        return None
     
-    url = influx_config["url"]
-    token = influx_config["token"]
-    org = influx_config["org"]
-    bucket = influx_config["bucket"]
+    plant_data = scene.pellets['Plant']
+    graph_data['simTime'].append(scene.simulatedTime)
+    graph_data['plantPelletCount'].append(plant_data['count'])
 
-    client = InfluxDBClient(url=url, token=token, org=org)
+    meat_data = scene.pellets['Meat']
+    graph_data['meatPelletCount'].append(meat_data['count'])
 
-    return client, bucket, org
-
-def write_to_influx(scene, settings, client, bucket, org):
-    write_api = client.write_api(write_options=SYNCHRONOUS)
-    for species_name in scene.species:
-        species_data = scene.species[species_name]
-        census_point = (
-            Point("census")
-            .tag("scenario", settings.scenario)
-            .tag("run", settings.run_num)
-            .tag("species", species_name)
-            .field("count", species_data["count"])
-            .field("totalEnergy", species_data["totalEnergy"])
-        )
-
-        for gene_name in species_data["gene_data"]:
-            gene_data = species_data["gene_data"][gene_name]
-            census_point.field(f"{gene_name}_mean", gene_data["mean"])
-            census_point.field(f"{gene_name}_median", gene_data["median"])
-            census_point.field(f"{gene_name}_min", gene_data["min"])
-            census_point.field(f"{gene_name}_max", gene_data["max"])
-
-        write_api.write(bucket, org, census_point)
-
-    for pellet_material in scene.pellets:
-        pellet_data = scene.pellets[pellet_material]
-        pellet_point = (
-            Point("pellets")
-            .tag("scenario", settings.scenario)
-            .tag("run", settings.run_num)
-            .tag("material", pellet_material)
-            .field("count", pellet_data["count"])
-            .field("energy", float(pellet_data["energy"]))
-        )
-
-        write_api.write(bucket, org, pellet_point)
-
-
-def process_save_dir(savedir, client, bucket, org):
-    # read scene.bb8scene as a json file into an object from the save dir
-    settings = Settings(savedir)
-    scene = Scene(settings, savedir)
-    write_to_influx(scene, settings, client, bucket, org)
-    client.close()
 
 def process_zipped_save(zippath):
-    client, bucket, org = init_influx_client()
-
     #rmtree if TEMP_PATH exists
     if os.path.exists(TEMP_PATH):
         shutil.rmtree(TEMP_PATH)
@@ -223,7 +220,10 @@ def process_zipped_save(zippath):
     with zipfile.ZipFile(zippath, 'r') as zip_ref:
         zip_ref.extractall(TEMP_PATH)
 
-    process_save_dir(TEMP_PATH, client, bucket, org)
+    settings = Settings(TEMP_PATH)
+    scene = Scene(settings, TEMP_PATH)
+
+    update_graphs(scene, settings)
 
 class ZippedAutosaveHandler(FileSystemEventHandler):
     def on_created(self, event):
@@ -240,6 +240,7 @@ class ZippedAutosaveHandler(FileSystemEventHandler):
                 print(e)
 
 def main(autosaves_path):
+    initialize_graphs()
     event_handler = ZippedAutosaveHandler()
     observer = Observer()
     observer.schedule(event_handler, path=autosaves_path, recursive=False)
@@ -261,4 +262,12 @@ if __name__ == "__main__":
     with open("./config.json") as config_file:
         data = config_file.read()
         autosave_path = load_unclean_json_string(data)['autosavePath']
+        savefile_archive_path = load_unclean_json_string(data)['savefileArchivePath']
+        TARGET_EXPERIMENT = load_unclean_json_string(data)['experimentName']
+        TARGET_RUN = load_unclean_json_string(data)['runNumber']
+
+    for filename in os.listdir(savefile_archive_path):
+        if filename.endswith('.zip'):
+            process_zipped_save(savefile_archive_path + "/" + filename)
+
     main(autosave_path)
