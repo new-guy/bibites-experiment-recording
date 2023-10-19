@@ -159,11 +159,31 @@ graph_data = {
     'plantPelletCount': [],
     'meatPelletCount': [],
     'plantPelletEnergy': [],
-    'meatPelletEnergy': []
+    'meatPelletEnergy': [],
+    'bibiteCountInSpecies': [],
+    'bibiteEnergyInSpecies': []
 }
 
 app = dash.Dash(__name__)
 def initialize_graphs():
+    dark_layout_style = {
+        'backgroundColor': '#1a1a1a',
+        'color': '#e6e6e6',
+        'fontFamily': 'Arial',
+        'body': {
+            'margin': 0,
+            'padding': 0
+        },
+        'h1': {
+            'margin-top': 0,
+            'padding': '10px'
+        },
+        'h2': {
+            'margin-top': 0,
+            'padding': '10px'
+        }
+    }
+
     scenario_graph_style = {
         'width': '45%',
         'height': '400px',
@@ -177,7 +197,7 @@ def initialize_graphs():
         'padding': '0 10px'
     }
 
-    app.layout = html.Div([
+    app.layout = html.Div(style=dark_layout_style, children=[
         html.H1("Bibite Analytics"),
         html.H2(f"Experiment: {TARGET_EXPERIMENT} | Run #: {TARGET_RUN}"),
         dcc.Interval(
@@ -194,11 +214,19 @@ def initialize_graphs():
             style=scenario_graph_style
         ),
         html.H2(f"{SPECIES_TO_MONITOR}"),
-    ] + [dcc.Graph(id=gene_name, style=species_graph_style, config={'responsive': True}) for gene_name in GENES_TO_MONITOR])
+        dcc.Graph(
+            id="bibite-count",
+            style=scenario_graph_style
+        ),
+        dcc.Graph(
+            id="bibite-energy",
+            style=scenario_graph_style
+        ),
+    ] + [dcc.Graph(id=gene_name, style=species_graph_style) for gene_name in GENES_TO_MONITOR])
 
     app.run_server(debug=True, use_reloader=False)
 
-outputs = [Output('pellet-count', 'figure'), Output('pellet-energy', 'figure')] + [Output(gene_name, 'figure') for gene_name in GENES_TO_MONITOR]
+outputs = [Output('pellet-count', 'figure'), Output('pellet-energy', 'figure'), Output('bibite-count', 'figure'), Output('bibite-energy', 'figure')] + [Output(gene_name, 'figure') for gene_name in GENES_TO_MONITOR]
 @app.callback(
     outputs,
     Input('interval-component', 'n_intervals')
@@ -216,6 +244,11 @@ def update_graphs(n):
             },
             'yaxis': {
                 'title': "Count"
+            },
+            'paper_bgcolor': '#1a1a1a',
+            'plot_bgcolor': '#1a1a1a',
+            'font': {
+                'color': '#e6e6e6'
             }
         }
     }
@@ -232,6 +265,51 @@ def update_graphs(n):
             },
             'yaxis': {
                 'title': "Energy"
+            },
+            'paper_bgcolor': '#1a1a1a',
+            'plot_bgcolor': '#1a1a1a',
+            'font': {
+                'color': '#e6e6e6'
+            }
+        }
+    }
+
+    bibite_count_fig = {
+        'data': [
+            go.Scatter(x=graph_data['simTime'], y=graph_data['bibiteCountInSpecies'], mode='lines+markers', name='Count')
+        ],
+        'layout': {
+            'title': "Bibite Count",
+            'xaxis': {
+                'title': "Sim Time (s)"
+            },
+            'yaxis': {
+                'title': "Count"
+            },
+            'paper_bgcolor': '#1a1a1a',
+            'plot_bgcolor': '#1a1a1a',
+            'font': {
+                'color': '#e6e6e6'
+            }
+        }
+    }
+
+    bibite_energy_fig = {
+        'data': [
+            go.Scatter(x=graph_data['simTime'], y=graph_data['bibiteEnergyInSpecies'], mode='lines+markers', name='Count')
+        ],
+        'layout': {
+            'title': "Bibite Energy",
+            'xaxis': {
+                'title': "Sim Time (s)"
+            },
+            'yaxis': {
+                'title': "Energy"
+            },
+            'paper_bgcolor': '#1a1a1a',
+            'plot_bgcolor': '#1a1a1a',
+            'font': {
+                'color': '#e6e6e6'
             }
         }
     }
@@ -257,12 +335,17 @@ def update_graphs(n):
                     'r': 20,
                     'b': 30,
                     't': 30
+                },
+                'paper_bgcolor': '#1a1a1a',
+                'plot_bgcolor': '#1a1a1a',
+                'font': {
+                    'color': '#e6e6e6'
                 }
             }
         }
         gene_figs.append(gene_fig)
     
-    response = (pellet_count_fig, pellet_energy_fig) + tuple(gene_figs)
+    response = (pellet_count_fig, pellet_energy_fig, bibite_count_fig, bibite_energy_fig) + tuple(gene_figs)
 
     return response
 
@@ -283,6 +366,8 @@ def store_graph_data(scene):
             continue
 
         species_data = scene.species[species_name]
+        graph_data['bibiteCountInSpecies'].append(species_data['count'])
+        graph_data['bibiteEnergyInSpecies'].append(species_data['totalEnergy'])
         for gene_name in species_data['gene_data']:
             if gene_name not in GENES_TO_MONITOR:
                 continue
