@@ -15,11 +15,6 @@ from dash import dcc, html
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 
-TEMP_UNARCHIVE_PATH = "./temp_unzipped_save"
-PELLET_MATERIALS = ['Plant', 'Meat']
-TARGET_EXPERIMENT = ""
-TARGET_RUN = ""
-SAVEFILE_ARCHIVE_PATH = ""
 
 def load_unclean_json_string(input_str):
     # Remove non-printable characters and weird whitespace
@@ -32,6 +27,18 @@ def load_unclean_json_string(input_str):
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON: {e}")
         return None
+
+with open("./config.json") as config_file:
+    data = config_file.read()
+    autosave_path = load_unclean_json_string(data)['autosavePath']
+    TARGET_EXPERIMENT = load_unclean_json_string(data)['experimentName']
+    TARGET_RUN = load_unclean_json_string(data)['runNumber']
+    SAVEFILE_ARCHIVE_PATH = f"{load_unclean_json_string(data)['savefileArchivePath']}/{TARGET_EXPERIMENT}/{TARGET_RUN}"
+    GENES_TO_MONITOR = load_unclean_json_string(data)['genesToMonitor']
+    SPECIES_TO_MONITOR = load_unclean_json_string(data)['speciesToMonitor']
+
+TEMP_UNARCHIVE_PATH = "./temp_unzipped_save"
+PELLET_MATERIALS = ['Plant', 'Meat']
     
 class Settings:
     def __init__(self, savedir):
@@ -175,6 +182,13 @@ app = dash.Dash(__name__)
 def initialize_graphs():
     scenario_graph_style = {
         'width': '45%',
+        'height': '400px',
+        'display': 'inline-block',
+        'padding': '0 20px'
+    }
+    species_graph_style = {
+        'width': '45%',
+        'height': '300px',
         'display': 'inline-block',
         'padding': '0 20px'
     }
@@ -182,7 +196,11 @@ def initialize_graphs():
     app.layout = html.Div([
         html.H1("Bibite Analytics"),
         html.H2(f"Scenario {TARGET_EXPERIMENT} Run {TARGET_RUN}"),
-
+        dcc.Interval(
+            id='interval-component',
+            interval=10000,
+            n_intervals=0
+        ),
         dcc.Graph(
             id="pellet-count",
             style=scenario_graph_style
@@ -190,19 +208,14 @@ def initialize_graphs():
         dcc.Graph(
             id="pellet-energy",
             style=scenario_graph_style
-        ),
-        dcc.Interval(
-            id='interval-component',
-            interval=10000,
-            n_intervals=0
         )
-    ])
+    ] + [dcc.Graph(id=gene_name, style=species_graph_style) for gene_name in GENES_TO_MONITOR])
 
     app.run_server(debug=True, use_reloader=False)
 
+outputs = [Output('pellet-count', 'figure'), Output('pellet-energy', 'figure')] + [Output(gene_name, 'figure') for gene_name in GENES_TO_MONITOR]
 @app.callback(
-    Output('pellet-count', 'figure'),
-    Output('pellet-energy', 'figure'),
+    outputs,
     Input('interval-component', 'n_intervals')
 )
 def update_graphs(n):
@@ -238,7 +251,28 @@ def update_graphs(n):
         }
     }
 
-    return pellet_count_fig, pellet_energy_fig
+    gene_figs = []
+    for gene_name in GENES_TO_MONITOR:
+        gene_fig = {
+            'data': [
+                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_mean"], mode='lines+markers', name=gene_name)
+            ],
+            'layout': {
+                'title': f"{gene_name}",
+                'xaxis': {
+                    'title': "Sim Time (s)"
+                },
+                'yaxis': {
+                    'title': "mean",
+                    'rangemode': 'tozero'
+                }
+            }
+        }
+        gene_figs.append(gene_fig)
+    
+    response = (pellet_count_fig, pellet_energy_fig) + tuple(gene_figs)
+
+    return response
 
 
 def store_graph_data(scene):
@@ -251,6 +285,21 @@ def store_graph_data(scene):
     meat_data = scene.pellets['Meat']
     graph_data['meatPelletCount'].append(meat_data['count'])
     graph_data['meatPelletEnergy'].append(meat_data['energy'])
+
+    for species_name in scene.species:
+        if species_name != SPECIES_TO_MONITOR:
+            continue
+
+        species_data = scene.species[species_name]
+        for gene_name in species_data['gene_data']:
+            if gene_name not in GENES_TO_MONITOR:
+                continue
+            
+            gene_data = species_data['gene_data'][gene_name]
+            if f"{gene_name}_mean" not in graph_data:
+                graph_data[f"{gene_name}_mean"] = []
+            
+            graph_data[f"{gene_name}_mean"].append(gene_data['mean'])
 
 
 def process_zipped_save(zippath, savezip=True):
@@ -310,9 +359,6 @@ if __name__ == "__main__":
     with open("./config.json") as config_file:
         data = config_file.read()
         autosave_path = load_unclean_json_string(data)['autosavePath']
-        TARGET_EXPERIMENT = load_unclean_json_string(data)['experimentName']
-        TARGET_RUN = load_unclean_json_string(data)['runNumber']
-        SAVEFILE_ARCHIVE_PATH = f"{load_unclean_json_string(data)['savefileArchivePath']}/{TARGET_EXPERIMENT}/{TARGET_RUN}"
 
     if not os.path.exists(SAVEFILE_ARCHIVE_PATH):
         os.makedirs(SAVEFILE_ARCHIVE_PATH)

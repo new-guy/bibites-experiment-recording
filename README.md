@@ -16,7 +16,11 @@ Use `pip` or `pip3` or `python3 -m pip` or whatever with the `-r requirements.tx
         "autosavePath": "[path to where your game autosaves]",
         "savefileArchivePath": "[path to all of your autosaves that you've archived - it will also save new autosaves here]",
         "experimentName": "[experiment to get data on]",
-        "runNumber": "[run to get data on]"
+        "runNumber": "[run to get data on]",
+        "genesToMonitor": [
+            [list of genes to monitor - see reference/bibite.bb8 for a list of genes]
+        ],
+        "speciesToMonitor": "[name of species - note that this is sensitive to capitalization and nothing will render if this is wrong]"
     }
 
 ## Setup - Bibites
