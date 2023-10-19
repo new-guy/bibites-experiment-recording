@@ -1,4 +1,3 @@
-import argparse
 import json
 import re
 import datetime
@@ -6,6 +5,7 @@ import os
 import zipfile
 import shutil
 import time
+from statistics import mean, median
 
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
@@ -128,24 +128,31 @@ class Scene:
                 bibite_total_energy = bibite_data["body"]["totalEnergy"]
                 
                 if bibite_name not in species:
-                    species[bibite_name] = {'count': 0, 'totalEnergy': 0, 'dietTotal': 0, 'sizeTotal': 0, 'speedTotal': 0, 'viewAngleTotal': 0, 'viewRadiusTotal': 0, 'birthMaturityTotal': 0}
+                    species[bibite_name] = {'count': 0, 'totalEnergy': 0, 'gene_lists': {}}
                 
                 species[bibite_name]['count'] += 1
                 species[bibite_name]['totalEnergy'] += bibite_total_energy
-                species[bibite_name]['dietTotal'] += bibite_data["genes"]["genes"]["Diet"]
-                species[bibite_name]['sizeTotal'] += bibite_data["genes"]["genes"]["SizeRatio"]
-                species[bibite_name]['speedTotal'] += bibite_data["genes"]["genes"]["SpeedRatio"]
-                species[bibite_name]['viewAngleTotal'] += bibite_data["genes"]["genes"]["ViewAngle"]
-                species[bibite_name]['viewRadiusTotal'] += bibite_data["genes"]["genes"]["ViewRadius"]
-                species[bibite_name]['birthMaturityTotal'] += (bibite_data["genes"]["genes"]["HatchTime"] / bibite_data["genes"]["genes"]["BroodTime"]) ** 2
+
+                for gene_name in bibite_data["genes"]["genes"]:
+                    if gene_name not in species[bibite_name]['gene_lists']:
+                        species[bibite_name]['gene_lists'][gene_name] = []
+                    
+                    gene_value = bibite_data["genes"]["genes"][gene_name]
+                    species[bibite_name]['gene_lists'][gene_name].append(gene_value)
+                    # Store all of the gene values for this species in a list so that we can do work on it later
         
+        #Calculate Gene info
         for species_name in species:
-            species[species_name]['avgDiet'] = species[species_name]['dietTotal'] / species[species_name]['count']
-            species[species_name]['avgSize'] = species[species_name]['sizeTotal'] / species[species_name]['count']
-            species[species_name]['avgSpeed'] = species[species_name]['speedTotal'] / species[species_name]['count']
-            species[species_name]['avgViewAngle'] = species[species_name]['viewAngleTotal'] / species[species_name]['count']
-            species[species_name]['avgViewRadius'] = species[species_name]['viewRadiusTotal'] / species[species_name]['count']
-            species[species_name]['avgBirthMaturity'] = species[species_name]['birthMaturityTotal'] / species[species_name]['count']
+            species_data = species[species_name]
+            species[species_name]["gene_data"] = {}
+            for gene_name in species_data['gene_lists']:
+                gene_values = species_data['gene_lists'][gene_name]
+                species[species_name]["gene_data"][gene_name] = {
+                    "mean": mean(gene_values),
+                    "median": median(gene_values),
+                    "min": min(gene_values),
+                    "max": max(gene_values)
+                }
         
         return species
 
@@ -174,13 +181,14 @@ def write_to_influx(scene, settings, client, bucket, org):
             .tag("species", species_name)
             .field("count", species_data["count"])
             .field("totalEnergy", species_data["totalEnergy"])
-            .field("avgDiet", species_data["avgDiet"])
-            .field("avgSize", species_data["avgSize"])
-            .field("avgSpeed", species_data["avgSpeed"])
-            .field("avgViewAngle", species_data["avgViewAngle"])
-            .field("avgViewRadius", species_data["avgViewRadius"])
-            .field("avgBirthMaturity", species_data["avgBirthMaturity"])
         )
+
+        for gene_name in species_data["gene_data"]:
+            gene_data = species_data["gene_data"][gene_name]
+            census_point.field(f"{gene_name}_mean", gene_data["mean"])
+            census_point.field(f"{gene_name}_median", gene_data["median"])
+            census_point.field(f"{gene_name}_min", gene_data["min"])
+            census_point.field(f"{gene_name}_max", gene_data["max"])
 
         write_api.write(bucket, org, census_point)
 
@@ -223,9 +231,13 @@ class ZippedAutosaveHandler(FileSystemEventHandler):
             return None
         elif event.event_type == 'created':
             print(f"Found new autosave: {event.src_path}")
-            time.sleep(5)
-            process_zipped_save(event.src_path)
-            print(f"Sent new autosave to InfluxDB")
+            time.sleep(20)
+            try:
+                process_zipped_save(event.src_path)
+                print(f"Sent new autosave to InfluxDB")
+            except Exception as e:
+                print(f"Error processing autosave")
+                print(e)
 
 def main(autosaves_path):
     event_handler = ZippedAutosaveHandler()

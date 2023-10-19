@@ -15,7 +15,7 @@
       "type": "grafana",
       "id": "grafana",
       "name": "Grafana",
-      "version": "10.2.0-61719"
+      "version": "10.2.0-62263"
     },
     {
       "type": "datasource",
@@ -125,7 +125,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
           "mode": "single",
@@ -217,7 +217,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
           "mode": "single",
@@ -238,12 +238,1227 @@
       "type": "timeseries"
     },
     {
-      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 8
+      },
+      "id": 19,
+      "title": "Average Bibite",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUX_CLOUD}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 9
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"count\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)",
+          "refId": "A"
+        }
+      ],
+      "title": "Bibite Total Count",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUX_CLOUD}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "mean"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "median"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "max"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "min"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 9
+      },
+      "id": 20,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Diet_mean\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Diet_median\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Diet_max\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Diet_min\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "D"
+        }
+      ],
+      "title": "Diet",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUX_CLOUD}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMin": 0.5,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "mean"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "median"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "max"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "min"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 9
+      },
+      "id": 23,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SizeRatio_mean\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SizeRatio_median\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SizeRatio_max\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SizeRatio_min\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "D"
+        }
+      ],
+      "title": "Size",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUX_CLOUD}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 0.7,
+            "axisSoftMin": 0.3,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "mean"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "median"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "max"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "min"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 13
+      },
+      "id": 21,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SpeedRatio_mean\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SpeedRatio_median\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SpeedRatio_max\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SpeedRatio_min\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "D"
+        }
+      ],
+      "title": "Speed",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUX_CLOUD}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 0.2,
+            "axisSoftMin": 0.1,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "mean"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "median"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "max"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "min"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 13
+      },
+      "id": 24,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"GrowthScale_mean\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"GrowthScale_median\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"GrowthScale_max\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"GrowthScale_min\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "D"
+        }
+      ],
+      "title": "Growth",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUX_CLOUD}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 15
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"totalEnergy\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)",
+          "refId": "A"
+        }
+      ],
+      "title": "Bibite Total Energy",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUX_CLOUD}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 3,
+            "axisSoftMin": 1,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "mean"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "median"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "max"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "min"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 17
+      },
+      "id": 22,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Defence_mean\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Defence_median\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Defence_max\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Defence_min\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "D"
+        }
+      ],
+      "title": "Defence",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUX_CLOUD}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 14,
+            "axisSoftMin": 7,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "mean"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "median"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "max"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "min"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 17
+      },
+      "id": 25,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Strength_mean\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Strength_median\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Strength_max\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Strength_min\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )\r\n  |> group(columns: [\"scenario\"])\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)",
+          "refId": "D"
+        }
+      ],
+      "title": "Mouth Strength",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
       },
       "id": 1,
       "panels": [],
@@ -317,7 +1532,7 @@
         "h": 6,
         "w": 8,
         "x": 0,
-        "y": 9
+        "y": 22
       },
       "id": 2,
       "options": {
@@ -362,7 +1577,7 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
-            "axisSoftMax": 1,
+            "axisSoftMax": 0.4,
             "axisSoftMin": 0,
             "barAlignment": 0,
             "drawStyle": "line",
@@ -430,7 +1645,7 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 9
+        "y": 22
       },
       "id": 6,
       "options": {
@@ -441,8 +1656,8 @@
           "showLegend": false
         },
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -451,11 +1666,38 @@
             "type": "influxdb",
             "uid": "${DS_INFLUX_CLOUD}"
           },
-          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"avgDiet\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Diet_mean\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Diet_min\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Diet_median\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Diet_max\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "D"
         }
       ],
-      "title": "avgDiet",
+      "title": "Diet",
       "type": "timeseries"
     },
     {
@@ -475,8 +1717,8 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
-            "axisSoftMax": 1,
-            "axisSoftMin": 0,
+            "axisSoftMax": 1.2,
+            "axisSoftMin": 0.4,
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 0,
@@ -525,13 +1767,13 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "avgSpeed {run=\"1\", scenario=\"Test\", species=\"Basic bibite\"}"
+              "options": "avgDiet {run=\"1\", scenario=\"Test\", species=\"Basic bibite\"}"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "light-green",
+                  "fixedColor": "red",
                   "mode": "fixed"
                 }
               }
@@ -543,9 +1785,9 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 9
+        "y": 22
       },
-      "id": 8,
+      "id": 14,
       "options": {
         "legend": {
           "calcs": [],
@@ -554,8 +1796,8 @@
           "showLegend": false
         },
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -564,11 +1806,38 @@
             "type": "influxdb",
             "uid": "${DS_INFLUX_CLOUD}"
           },
-          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"avgSpeed\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SizeRatio_mean\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SizeRatio_min\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SizeRatio_median\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SizeRatio_max\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "D"
         }
       ],
-      "title": "avgSpeed",
+      "title": "Size",
       "type": "timeseries"
     },
     {
@@ -588,8 +1857,8 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
-            "axisSoftMax": 2,
-            "axisSoftMin": 0,
+            "axisSoftMax": 0.8,
+            "axisSoftMin": 0.2,
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 0,
@@ -638,13 +1907,13 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "avgSize {run=\"1\", scenario=\"Test\", species=\"Basic bibite\"}"
+              "options": "avgDiet {run=\"1\", scenario=\"Test\", species=\"Basic bibite\"}"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "purple",
+                  "fixedColor": "red",
                   "mode": "fixed"
                 }
               }
@@ -656,9 +1925,9 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 13
+        "y": 26
       },
-      "id": 7,
+      "id": 15,
       "options": {
         "legend": {
           "calcs": [],
@@ -667,8 +1936,8 @@
           "showLegend": false
         },
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -677,11 +1946,38 @@
             "type": "influxdb",
             "uid": "${DS_INFLUX_CLOUD}"
           },
-          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"avgSize\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SpeedRatio_mean\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SpeedRatio_min\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SpeedRatio_median\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"SpeedRatio_max\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "D"
         }
       ],
-      "title": "avgSize",
+      "title": "Speed",
       "type": "timeseries"
     },
     {
@@ -701,7 +1997,7 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
-            "axisSoftMax": 1,
+            "axisSoftMax": 0.4,
             "axisSoftMin": 0,
             "barAlignment": 0,
             "drawStyle": "line",
@@ -751,13 +2047,13 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "avgBirthMaturity {run=\"1\", scenario=\"Test\", species=\"Basic bibite\"}"
+              "options": "avgDiet {run=\"1\", scenario=\"Test\", species=\"Basic bibite\"}"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "dark-blue",
+                  "fixedColor": "red",
                   "mode": "fixed"
                 }
               }
@@ -769,9 +2065,9 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 13
+        "y": 26
       },
-      "id": 11,
+      "id": 16,
       "options": {
         "legend": {
           "calcs": [],
@@ -780,8 +2076,8 @@
           "showLegend": false
         },
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -790,11 +2086,38 @@
             "type": "influxdb",
             "uid": "${DS_INFLUX_CLOUD}"
           },
-          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"avgBirthMaturity\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"GrowthScale_mean\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"GrowthScale_min\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"GrowthScale_median\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"GrowthScale_max\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "D"
         }
       ],
-      "title": "avgBirthMaturity",
+      "title": "Growth",
       "type": "timeseries"
     },
     {
@@ -878,7 +2201,7 @@
         "h": 6,
         "w": 8,
         "x": 0,
-        "y": 15
+        "y": 28
       },
       "id": 3,
       "options": {
@@ -923,7 +2246,147 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
-            "axisSoftMax": 270,
+            "axisSoftMax": 3,
+            "axisSoftMin": 1,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 2,
+            "pointSize": 6,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "avgDiet {run=\"1\", scenario=\"Test\", species=\"Basic bibite\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 30
+      },
+      "id": 17,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Defence_mean\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Defence_min\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Defence_median\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Defence_max\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "D"
+        }
+      ],
+      "title": "Defence",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUX_CLOUD}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 15,
             "axisSoftMin": 0,
             "barAlignment": 0,
             "drawStyle": "line",
@@ -973,13 +2436,13 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "avgViewAngle {run=\"1\", scenario=\"Test\", species=\"Basic bibite\"}"
+              "options": "avgDiet {run=\"1\", scenario=\"Test\", species=\"Basic bibite\"}"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "#d8d9d8",
+                  "fixedColor": "red",
                   "mode": "fixed"
                 }
               }
@@ -990,107 +2453,10 @@
       "gridPos": {
         "h": 4,
         "w": 8,
-        "x": 8,
-        "y": 17
-      },
-      "id": 9,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_INFLUX_CLOUD}"
-          },
-          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"avgViewAngle\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
-          "refId": "A"
-        }
-      ],
-      "title": "avgViewAngle",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "${DS_INFLUX_CLOUD}"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "axisSoftMax": 150,
-            "axisSoftMin": 0,
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 2,
-            "pointSize": 6,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 8,
         "x": 16,
-        "y": 17
+        "y": 30
       },
-      "id": 10,
+      "id": 18,
       "options": {
         "legend": {
           "calcs": [],
@@ -1099,8 +2465,8 @@
           "showLegend": false
         },
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -1109,11 +2475,38 @@
             "type": "influxdb",
             "uid": "${DS_INFLUX_CLOUD}"
           },
-          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"avgViewRadius\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Strength_mean\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Strength_min\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Strength_median\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUX_CLOUD}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\r\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\r\n  |> filter(fn: (r) =>\r\n    r._measurement == \"census\" and\r\n    r._field == \"Strength_max\" and\r\n    r.species == \"${species}\" and\r\n    r.run =~ /^${run:regex}$/ and\r\n    r.scenario =~ /^${scenario:regex}$/\r\n  )",
+          "refId": "D"
         }
       ],
-      "title": "avgViewRadius",
+      "title": "Mouth Strength",
       "type": "timeseries"
     }
   ],
@@ -1182,13 +2575,13 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Bibites Test",
   "uid": "afe0cef1-ec21-4815-99cd-615df3c8c7b4",
-  "version": 30,
+  "version": 41,
   "weekStart": ""
 }
