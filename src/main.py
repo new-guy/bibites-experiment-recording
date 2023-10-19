@@ -208,7 +208,8 @@ def initialize_graphs():
         dcc.Graph(
             id="pellet-energy",
             style=scenario_graph_style
-        )
+        ),
+        html.H2(f"Bibite Species {SPECIES_TO_MONITOR}"),
     ] + [dcc.Graph(id=gene_name, style=species_graph_style) for gene_name in GENES_TO_MONITOR])
 
     app.run_server(debug=True, use_reloader=False)
