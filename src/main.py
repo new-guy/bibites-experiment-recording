@@ -160,8 +160,7 @@ graph_data = {
     'meatPelletCount': [],
     'plantPelletEnergy': [],
     'meatPelletEnergy': [],
-    'bibiteCountInSpecies': [],
-    'bibiteEnergyInSpecies': []
+    'species': {}
 }
 
 app = dash.Dash(__name__)
@@ -200,6 +199,7 @@ def initialize_graphs():
     app.layout = html.Div(style=dark_layout_style, children=[
         html.H1("Bibite Analytics"),
         html.H2(f"Experiment: {TARGET_EXPERIMENT} | Run #: {TARGET_RUN}"),
+        dcc.Dropdown(id='species-dropdown', options=[]),
         dcc.Interval(
             id='interval-component',
             interval=10000,
@@ -274,9 +274,10 @@ def update_graphs(n):
         }
     }
 
+    graph_species_data = graph_data['species'][SPECIES_TO_MONITOR]
     bibite_count_fig = {
         'data': [
-            go.Scatter(x=graph_data['simTime'], y=graph_data['bibiteCountInSpecies'], mode='lines+markers', name='Count')
+            go.Scatter(x=graph_data['simTime'], y=graph_species_data['count'], mode='lines+markers', name='Count')
         ],
         'layout': {
             'title': "Bibite Count",
@@ -296,7 +297,7 @@ def update_graphs(n):
 
     bibite_energy_fig = {
         'data': [
-            go.Scatter(x=graph_data['simTime'], y=graph_data['bibiteEnergyInSpecies'], mode='lines+markers', name='Count')
+            go.Scatter(x=graph_data['simTime'], y=graph_species_data['totalEnergy'], mode='lines+markers', name='Count')
         ],
         'layout': {
             'title': "Bibite Energy",
@@ -315,13 +316,14 @@ def update_graphs(n):
     }
 
     gene_figs = []
+    graph_species_gene_data = graph_species_data['gene_data']
     for gene_name in GENES_TO_MONITOR:
         gene_fig = {
             'data': [
-                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_mean"], mode='lines+markers', name="mean"),
-                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_median"], mode='lines+markers', name="median"),
-                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_min"], mode='lines+markers', name="min"),
-                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_max"], mode='lines+markers', name="max")
+                go.Scatter(x=graph_data['simTime'], y=graph_species_gene_data[gene_name]['mean'], mode='lines+markers', name="mean"),
+                go.Scatter(x=graph_data['simTime'], y=graph_species_gene_data[gene_name]['median'], mode='lines+markers', name="median"),
+                go.Scatter(x=graph_data['simTime'], y=graph_species_gene_data[gene_name]['min'], mode='lines+markers', name="min"),
+                go.Scatter(x=graph_data['simTime'], y=graph_species_gene_data[gene_name]['max'], mode='lines+markers', name="max")
             ],
             'layout': {
                 'title': f"{gene_name}",
@@ -349,7 +351,6 @@ def update_graphs(n):
 
     return response
 
-
 def store_graph_data(scene):
     graph_data['simTime'].append(scene.simulatedTime)
 
@@ -366,23 +367,35 @@ def store_graph_data(scene):
             continue
 
         species_data = scene.species[species_name]
-        graph_data['bibiteCountInSpecies'].append(species_data['count'])
-        graph_data['bibiteEnergyInSpecies'].append(species_data['totalEnergy'])
+
+        if species_name not in graph_data['species']:
+            graph_data['species'][species_name] = {
+                'count': [],
+                'totalEnergy': [],
+                'gene_data': {}
+            }
+
+        graph_species_data = graph_data['species'][species_name]
+        graph_species_data['count'].append(species_data['count'])
+        graph_species_data['totalEnergy'].append(species_data['totalEnergy'])
+
+        graph_species_gene_data = graph_species_data['gene_data']
         for gene_name in species_data['gene_data']:
             if gene_name not in GENES_TO_MONITOR:
                 continue
             
             gene_data = species_data['gene_data'][gene_name]
-            if f"{gene_name}_mean" not in graph_data:
-                graph_data[f"{gene_name}_mean"] = []
-                graph_data[f"{gene_name}_median"] = []
-                graph_data[f"{gene_name}_min"] = []
-                graph_data[f"{gene_name}_max"] = []
+            if gene_name not in graph_species_gene_data:
+                graph_species_gene_data[gene_name] = {}
+                graph_species_gene_data[gene_name]['mean'] = []
+                graph_species_gene_data[gene_name]['median'] = []
+                graph_species_gene_data[gene_name]['min'] = []
+                graph_species_gene_data[gene_name]['max'] = []
             
-            graph_data[f"{gene_name}_mean"].append(gene_data['mean'])
-            graph_data[f"{gene_name}_median"].append(gene_data['median'])
-            graph_data[f"{gene_name}_min"].append(gene_data['min'])
-            graph_data[f"{gene_name}_max"].append(gene_data['max'])
+            graph_species_gene_data[gene_name]['mean'].append(gene_data['mean'])
+            graph_species_gene_data[gene_name]['median'].append(gene_data['median'])
+            graph_species_gene_data[gene_name]['min'].append(gene_data['min'])
+            graph_species_gene_data[gene_name]['max'].append(gene_data['max'])
 
 
 def process_zipped_save(zippath, savezip=True):
