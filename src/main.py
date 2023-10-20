@@ -259,6 +259,7 @@ outputs = [Output('pellet-count', 'figure'), Output('pellet-energy', 'figure'), 
     Input('interval-component', 'n_intervals')
 )
 def update_graphs(n):
+    global SPECIES_TO_MONITOR
     pellet_count_fig = {
         'data': [
             go.Scatter(x=graph_data['simTime'], y=graph_data['plantPelletCount'], mode='lines+markers', name='Plant'),
