@@ -77,6 +77,7 @@ class Scene:
             data = scene_file.read().decode("utf-8")
             scene_data = load_unclean_json_string(data)
         self.simulatedTime = scene_data['simulatedTime']
+        self.totalBibiteCount = scene_data['nBibites']
 
         # pellets
         with archive.open("pellets.bb8scene") as pellet_file:
@@ -160,6 +161,7 @@ graph_data = {
     'meatPelletCount': [],
     'plantPelletEnergy': [],
     'meatPelletEnergy': [],
+    'totalBibiteCount': [],
     'species': {}
 }
 
@@ -215,8 +217,19 @@ def initialize_graphs():
             id="pellet-energy",
             style=scenario_graph_style
         ),
+        html.H2(children="All Species ever with 5+ Bibites")
+    ] + [
+        dcc.Graph(
+            id="all-bibite-counts",
+            style=scenario_graph_style
+        ),
+        dcc.Graph(
+            id="all-bibite-total-energy",
+            style=scenario_graph_style
+        )
+    ] + [
+        html.H2(id="species-to-monitor", children=f"{SPECIES_TO_MONITOR} - Select below (type to search)"),
         dcc.Dropdown([SPECIES_TO_MONITOR], SPECIES_TO_MONITOR, id='species-dropdown', style=dropdown_style),
-        html.H2(id="species-to-monitor", children=f"{SPECIES_TO_MONITOR}"),
         dcc.Graph(
             id="bibite-count",
             style=scenario_graph_style
@@ -253,7 +266,17 @@ def update_species_to_monitor(selected_species):
         return "No species selected."
     return selected_species
 
-outputs = [Output('pellet-count', 'figure'), Output('pellet-energy', 'figure'), Output('bibite-count', 'figure'), Output('bibite-energy', 'figure')] + [Output(gene_name, 'figure') for gene_name in GENES_TO_MONITOR]
+outputs = [
+    Output('pellet-count', 'figure'), 
+    Output('pellet-energy', 'figure'), 
+    Output('bibite-count', 'figure'), 
+    Output('bibite-energy', 'figure')
+    ] + [
+        Output(gene_name, 'figure') for gene_name in GENES_TO_MONITOR
+    ] + [
+        Output('all-bibite-counts', 'figure'),
+        Output('all-bibite-total-energy', 'figure')
+    ]
 @app.callback(
     outputs,
     Input('interval-component', 'n_intervals')
@@ -305,12 +328,14 @@ def update_graphs(n):
     if SPECIES_TO_MONITOR == "":
         if len(graph_data['species']) > 0:
             SPECIES_TO_MONITOR = list(graph_data['species'].keys())[0]  # Default to the first species in the list
-        else: 
+        else:
+            # No species yet?  Return empty graphs
             return (pellet_count_fig, pellet_energy_fig, None, None) + tuple([None for gene_name in GENES_TO_MONITOR])
-    graph_species_data = graph_data['species'][SPECIES_TO_MONITOR]
-    bibite_count_fig = {
+
+    selected_species_data = graph_data['species'][SPECIES_TO_MONITOR]
+    selected_species_count_fig = {
         'data': [
-            go.Scatter(x=graph_data['simTime'], y=graph_species_data['count'], mode='lines+markers', name='Count')
+            go.Scatter(x=graph_data['simTime'], y=selected_species_data['count'], mode='lines+markers', name='Count')
         ],
         'layout': {
             'title': "Bibite Count",
@@ -328,9 +353,9 @@ def update_graphs(n):
         }
     }
 
-    bibite_energy_fig = {
+    selected_species_energy_fig = {
         'data': [
-            go.Scatter(x=graph_data['simTime'], y=graph_species_data['totalEnergy'], mode='lines+markers', name='Count')
+            go.Scatter(x=graph_data['simTime'], y=selected_species_data['totalEnergy'], mode='lines+markers', name='Count')
         ],
         'layout': {
             'title': "Bibite Energy",
@@ -348,15 +373,15 @@ def update_graphs(n):
         }
     }
 
-    gene_figs = []
-    graph_species_gene_data = graph_species_data['gene_data']
+    selected_species_gene_figs = []
+    selected_species_gene_data = selected_species_data['gene_data']
     for gene_name in GENES_TO_MONITOR:
-        gene_fig = {
+        selected_species_gene_fig = {
             'data': [
-                go.Scatter(x=graph_data['simTime'], y=graph_species_gene_data[gene_name]['mean'], mode='lines+markers', name="mean"),
-                go.Scatter(x=graph_data['simTime'], y=graph_species_gene_data[gene_name]['median'], mode='lines+markers', name="median"),
-                go.Scatter(x=graph_data['simTime'], y=graph_species_gene_data[gene_name]['min'], mode='lines+markers', name="min"),
-                go.Scatter(x=graph_data['simTime'], y=graph_species_gene_data[gene_name]['max'], mode='lines+markers', name="max")
+                go.Scatter(x=graph_data['simTime'], y=selected_species_gene_data[gene_name]['mean'], mode='lines+markers', name="mean"),
+                go.Scatter(x=graph_data['simTime'], y=selected_species_gene_data[gene_name]['median'], mode='lines+markers', name="median"),
+                go.Scatter(x=graph_data['simTime'], y=selected_species_gene_data[gene_name]['min'], mode='lines+markers', name="min"),
+                go.Scatter(x=graph_data['simTime'], y=selected_species_gene_data[gene_name]['max'], mode='lines+markers', name="max")
             ],
             'layout': {
                 'title': f"{gene_name}",
@@ -375,14 +400,68 @@ def update_graphs(n):
                 }
             }
         }
-        gene_figs.append(gene_fig)
+        selected_species_gene_figs.append(selected_species_gene_fig)
     
-    response = (pellet_count_fig, pellet_energy_fig, bibite_count_fig, bibite_energy_fig) + tuple(gene_figs)
+    # get all of the counts, total energies, and gene data from each species, with the species name as the key
+    species_counts = [
+        go.Scatter(x=graph_data['simTime'], y=graph_data['totalBibiteCount'], mode='lines+markers', name='Total (incl. < 5)')
+    ]
+    species_total_energies = []
+    for species_name in graph_data['species']:
+        species_data = graph_data['species'][species_name]
 
+        # only collect species with 5+ bibites
+        if max(species_data['count']) < 5:
+            continue
+
+        count_scatter = go.Scatter(x=graph_data['simTime'], y=species_data['count'], mode='lines+markers', name=species_name)
+        species_counts.append(count_scatter)
+
+        total_energy_scatter = go.Scatter(x=graph_data['simTime'], y=species_data['totalEnergy'], mode='lines+markers', name=species_name)
+        species_total_energies.append(total_energy_scatter)
+
+    all_species_count_fig = {
+        'data': species_counts,
+        'layout': {
+            'title': "Count",
+            'xaxis': {
+                'title': "Sim Time (s)"
+            },
+            'yaxis': {
+                'title': "Count"
+            },
+            'paper_bgcolor': '#1a1a1a',
+            'plot_bgcolor': '#1a1a1a',
+            'font': {
+                'color': '#e6e6e6'
+            }
+        }
+    }
+
+    all_species_energy_fig = {
+        'data': species_total_energies,
+        'layout': {
+            'title': "Total Energy",
+            'xaxis': {
+                'title': "Sim Time (s)"
+            },
+            'yaxis': {
+                'title': "Energy"
+            },
+            'paper_bgcolor': '#1a1a1a',
+            'plot_bgcolor': '#1a1a1a',
+            'font': {
+                'color': '#e6e6e6'
+            }
+        }
+    }
+    
+    response = (pellet_count_fig, pellet_energy_fig, selected_species_count_fig, selected_species_energy_fig) + tuple(selected_species_gene_figs) + (all_species_count_fig, all_species_energy_fig)
     return response
 
 def store_graph_data(scene):
     graph_data['simTime'].append(scene.simulatedTime)
+    graph_data['totalBibiteCount'].append(scene.totalBibiteCount)
 
     plant_data = scene.pellets['Plant']
     graph_data['plantPelletCount'].append(plant_data['count'])

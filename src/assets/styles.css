@@ -21,3 +21,7 @@ h1 {
 .Select-value-label {
     color: white !important;
 }
+
+.Select input {
+    color: white !important;
+}
