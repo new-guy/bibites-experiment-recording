@@ -37,6 +37,7 @@ with open("./config.json") as config_file:
     GENES_TO_MONITOR = load_unclean_json_string(data)['genesToMonitor']
 
 PELLET_MATERIALS = ['Plant', 'Meat']
+SPECIES_TO_MONITOR = ""
     
 class Settings:
     def __init__(self, archive):
@@ -203,7 +204,7 @@ def initialize_graphs():
         html.H2(f"Experiment: {TARGET_EXPERIMENT} | Run #: {TARGET_RUN}"),
         dcc.Interval(
             id='interval-component',
-            interval=10000,
+            interval=20000,
             n_intervals=0
         ),
         dcc.Graph(
@@ -300,6 +301,8 @@ def update_graphs(n):
         }
     }
 
+    if SPECIES_TO_MONITOR == "":
+        SPECIES_TO_MONITOR = list(graph_data['species'].keys())[0]  # Default to the first species in the list
     graph_species_data = graph_data['species'][SPECIES_TO_MONITOR]
     bibite_count_fig = {
         'data': [
@@ -386,9 +389,6 @@ def store_graph_data(scene):
     graph_data['meatPelletEnergy'].append(meat_data['energy'])
 
     for species_name in scene.species:
-        if species_name != SPECIES_TO_MONITOR:
-            continue
-
         species_data = scene.species[species_name]
 
         if species_name not in graph_data['species']:

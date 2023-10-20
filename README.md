@@ -71,3 +71,46 @@ Or make these docs better - if you run into issues and you wanna suggest how you
 Submit a PR!
 
 If you wanna set up linting and whatnot, that'd be cool.
+
+## Treats
+
+ty to @Radnugget for throwing this together
+
+```
+"genesToMonitor": [
+    "LayTime",
+    "BroodTime",
+    "HatchTime",
+    "SizeRatio",
+    "SpeedRatio",
+    "ColorR",
+    "ColorG",
+    "ColorB",
+    "Strength",
+    "Defence",
+    "MutationAmountSigma",
+    "AverageMutationNumber",
+    "BrainMutationSigma",
+    "BrainAverageMutation",
+    "ViewAngle",
+    "ViewRadius",
+    "ClockSpeed",
+    "PheroSense",
+    "Diet",
+    "ImmuneSystemStrength",
+    "HerdSeparationWeight",
+    "HerdAlignmentWeight",
+    "HerdCohesionWeight",
+    "HerdVelocityWeight",
+    "HerdSeparationDistance",
+    "GrowthScale",
+    "GrowthMaturityFactor",
+    "GrowthMaturityExponent",
+    "EyeOffset",
+    "StomachWAG",
+    "WombWAG",
+    "FatWAG",
+    "FatStorageThreshold",
+    "FatStorageDeadband"
+]
+```
