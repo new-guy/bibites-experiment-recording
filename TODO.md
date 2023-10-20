@@ -1,2 +1,3 @@
 - Add support for multiple runs simultaneously
-- Add support for multiple species
+- Refactor and break the code into multiple files
+- Lint

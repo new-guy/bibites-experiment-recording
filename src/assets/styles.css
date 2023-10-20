@@ -1,0 +1,27 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    margin-block-start: 0;
+    margin-block-end: 0;
+}
+
+.Select-control {
+    background-color: rgb(25, 25, 25) !important;
+    color:white;
+  }
+  
+.Select-menu-outer {
+    background-color: rgb(25, 25, 25);
+    color: white;
+}
+
+.Select-value-label {
+    color: white !important;
+}
+
+.Select input {
+    color: white !important;
+}

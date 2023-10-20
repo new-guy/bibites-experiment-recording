@@ -20,9 +20,13 @@ Also, I use the term `experiment` to refer to any individual timeline of a run i
 
 **At the time of posting, this only supports Alpha 0.6a7**
 
+If you don't know how to do any of this, you can just copy this entire setup section into chatgpt and ask it to explain how to do this like you've never opened up a command prompt before.  It'll help you out.
+
 1. Install python
-2. Run `pip install -r requirements.txt` (if this doesn't work, copy the error you're getting and google it and/or ask chatgpt how to fix it)
-3. Create a `config.json` file in the root of this dir with the following format:
+2. Download this repo (either with git or by downloading the zip and extracting it)
+3. Open a command prompt in the root of this directory
+4. Run `pip install -r requirements.txt` (if this doesn't work, copy the error you're getting and google it and/or ask chatgpt how to fix it.  Also if you don't know how to do this, ask chatgpt and he'll help you out)
+5. Create a `config.json` file in the root of this dir with the following format:
 ```
 {
     "autosavePath": "[path to where your game autosaves]",
@@ -31,8 +35,7 @@ Also, I use the term `experiment` to refer to any individual timeline of a run i
     "runNumber": "[run to get data on]",
     "genesToMonitor": [
         [list of genes to monitor - see reference/bibite.bb8 for a list of genes]
-    ],
-    "speciesToMonitor": "[name of species - note that this is sensitive to capitalization and nothing will render if this is wrong]"
+    ]
 }
 ```
 for example:
@@ -45,12 +48,12 @@ for example:
         "genesToMonitor": [
             "Diet",
             "SizeRatio"
-        ],
-        "speciesToMonitor": "Basic bibite"
+        ]
     }
 ```
-4. Run `python ./src/main.py` or whatever the equivalent is for you.  Alternatively, use vscode, open up main.py, and hit F5 to run it - that's what I do
-5. Go to `localhost:8050` in your browser
+6. Run `python ./src/main.py` or whatever the equivalent is for you.  Alternatively, use vscode, open up main.py, and hit F5 to run it - that's what I do
+7. Go to `localhost:8050` in your browser
+    - Note, it'll freak out until there's at least 1 save file
 
 *NOTE* You need to name your first pellet zone in your scenario in the format `"[experimentName] [runNumber]"` for this to work.  If you don't do this, it _will break_.
 
@@ -69,3 +72,46 @@ Or make these docs better - if you run into issues and you wanna suggest how you
 Submit a PR!
 
 If you wanna set up linting and whatnot, that'd be cool.
+
+## Treats
+
+ty to @Radnugget for throwing this together
+
+```
+"genesToMonitor": [
+    "LayTime",
+    "BroodTime",
+    "HatchTime",
+    "SizeRatio",
+    "SpeedRatio",
+    "ColorR",
+    "ColorG",
+    "ColorB",
+    "Strength",
+    "Defence",
+    "MutationAmountSigma",
+    "AverageMutationNumber",
+    "BrainMutationSigma",
+    "BrainAverageMutation",
+    "ViewAngle",
+    "ViewRadius",
+    "ClockSpeed",
+    "PheroSense",
+    "Diet",
+    "ImmuneSystemStrength",
+    "HerdSeparationWeight",
+    "HerdAlignmentWeight",
+    "HerdCohesionWeight",
+    "HerdVelocityWeight",
+    "HerdSeparationDistance",
+    "GrowthScale",
+    "GrowthMaturityFactor",
+    "GrowthMaturityExponent",
+    "EyeOffset",
+    "StomachWAG",
+    "WombWAG",
+    "FatWAG",
+    "FatStorageThreshold",
+    "FatStorageDeadband"
+]
+```

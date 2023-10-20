@@ -1,5 +1,6 @@
 import json
 import re
+import io
 import os
 import zipfile
 import shutil
@@ -34,15 +35,14 @@ with open("./config.json") as config_file:
     TARGET_RUN = load_unclean_json_string(data)['runNumber']
     SAVEFILE_ARCHIVE_PATH = f"{load_unclean_json_string(data)['savefileArchivePath']}/{TARGET_EXPERIMENT}/{TARGET_RUN}"
     GENES_TO_MONITOR = load_unclean_json_string(data)['genesToMonitor']
-    SPECIES_TO_MONITOR = load_unclean_json_string(data)['speciesToMonitor']
 
-TEMP_UNARCHIVE_PATH = "./temp_unzipped_save"
 PELLET_MATERIALS = ['Plant', 'Meat']
+SPECIES_TO_MONITOR = ""
     
 class Settings:
-    def __init__(self, savedir):
-        with open(savedir + "/settings.bb8settings") as settings_file:
-            data = settings_file.read()
+    def __init__(self, archive):
+        with archive.open("settings.bb8settings") as settings_file:
+            data = settings_file.read().decode("utf-8")
             settings_data = load_unclean_json_string(data)
 
         self.materials = settings_data['materials']
@@ -50,9 +50,9 @@ class Settings:
         self.run_num = settings_data['zones'][0]["name"].split(" ")[1]
 
 class SpeciesRecords:
-    def __init__(self, savedir):
-        with open(savedir + "/speciesData.json") as species_file:
-            data = species_file.read()
+    def __init__(self, archive):
+        with archive.open("speciesData.json") as species_file:
+            data = species_file.read().decode("utf-8")
             records = load_unclean_json_string(data)["recordedSpecies"]
         
         self.species = {}
@@ -69,18 +69,19 @@ class SpeciesRecords:
 
 # define a class for a scene
 class Scene:
-    def __init__(self, settings, savedir):
+    def __init__(self, settings, archive):
         self.settings = settings
         
         # scene
-        with open(savedir + "/scene.bb8scene") as scene_file:
-            data = scene_file.read()
+        with archive.open("scene.bb8scene") as scene_file:
+            data = scene_file.read().decode("utf-8")
             scene_data = load_unclean_json_string(data)
         self.simulatedTime = scene_data['simulatedTime']
+        self.totalBibiteCount = scene_data['nBibites']
 
         # pellets
-        with open(savedir + "/pellets.bb8scene") as pellet_file:
-            data = pellet_file.read()
+        with archive.open("pellets.bb8scene") as pellet_file:
+            data = pellet_file.read().decode("utf-8")
             pellet_data = load_unclean_json_string(data)
 
         self.pellets = {}
@@ -89,8 +90,8 @@ class Scene:
             self.pellets[pellet_material] = {'count': count, 'energy': energy}
 
         # bibites
-        self.speciesRecords = SpeciesRecords(savedir)
-        self.species = self.aggregate_species_data(savedir)
+        self.speciesRecords = SpeciesRecords(archive)
+        self.species = self.aggregate_species_data(archive)
     
     def get_pellet_count_and_energy_by_material(self, material, pellet_zones):
         count = 0
@@ -108,35 +109,35 @@ class Scene:
         
         return count, energy
 
-    def aggregate_species_data(self, savedir):
+    def aggregate_species_data(self, archive):
         species = {}
-        bibites_dir = savedir + "/bibites"
+        bibites_dir = "bibites/"
 
-        for filename in os.listdir(bibites_dir):
-            if filename.endswith('.bb8'):
-                with open(f"{bibites_dir}/{filename}") as bibite_file:
-                    data = bibite_file.read()
-                    bibite_data = load_unclean_json_string(data)
-                
-                bibit_species_id = bibite_data["genes"]["speciesID"]
-                species_name = self.speciesRecords.getSpeciesNameByID(bibit_species_id)
+        bibites_filenames = [name for name in archive.namelist() if (name.startswith(bibites_dir) and name.endswith('bb8'))]
+        for filename in bibites_filenames:
+            with archive.open(f"{filename}") as bibite_file:
+                data = bibite_file.read().decode("utf-8")
+                bibite_data = load_unclean_json_string(data)
+            
+            bibit_species_id = bibite_data["genes"]["speciesID"]
+            species_name = self.speciesRecords.getSpeciesNameByID(bibit_species_id)
 
-                if species_name not in species:
-                    species[species_name] = {'count': 0, 'totalEnergy': 0, 'gene_lists': {}}
-                
-                bibite_total_energy = bibite_data["body"]["totalEnergy"]
-                species[species_name]['totalEnergy'] += bibite_total_energy
-                species[species_name]['count'] += 1
+            if species_name not in species:
+                species[species_name] = {'count': 0, 'totalEnergy': 0, 'gene_lists': {}}
+            
+            bibite_total_energy = bibite_data["body"]["totalEnergy"]
+            species[species_name]['totalEnergy'] += bibite_total_energy
+            species[species_name]['count'] += 1
 
-                # Store all of the gene values for this species in a list so that we can do work on it later
-                bibite_gene_data = bibite_data["genes"]["genes"]
-                for gene_name in bibite_gene_data:
-                    bibite_gene_lists = species[species_name]['gene_lists']
-                    if gene_name not in bibite_gene_lists:
-                        bibite_gene_lists[gene_name] = []
+            # Store all of the gene values for this species in a list so that we can do work on it later
+            bibite_gene_data = bibite_data["genes"]["genes"]
+            for gene_name in bibite_gene_data:
+                bibite_gene_lists = species[species_name]['gene_lists']
+                if gene_name not in bibite_gene_lists:
+                    bibite_gene_lists[gene_name] = []
 
-                    gene_value = bibite_gene_data[gene_name]
-                    bibite_gene_lists[gene_name].append(gene_value)
+                gene_value = bibite_gene_data[gene_name]
+                bibite_gene_lists[gene_name].append(gene_value)
         
         #Calculate Gene stats
         for species_name in species:
@@ -159,11 +160,31 @@ graph_data = {
     'plantPelletCount': [],
     'meatPelletCount': [],
     'plantPelletEnergy': [],
-    'meatPelletEnergy': []
+    'meatPelletEnergy': [],
+    'totalBibiteCount': [],
+    'species': {}
 }
 
 app = dash.Dash(__name__)
 def initialize_graphs():
+    dark_layout_style = {
+        'backgroundColor': '#1a1a1a',
+        'color': '#e6e6e6',
+        'fontFamily': 'Arial',
+        'body': {
+            'margin': 0,
+            'padding': 0
+        },
+        'h1': {
+            'margin-top': 0,
+            'padding': '10px'
+        },
+        'h2': {
+            'margin-top': 0,
+            'padding': '10px'
+        }
+    }
+
     scenario_graph_style = {
         'width': '45%',
         'height': '400px',
@@ -176,13 +197,16 @@ def initialize_graphs():
         'display': 'inline-block',
         'padding': '0 10px'
     }
+    dropdown_style = {
+        'width': '50%'
+    }
 
-    app.layout = html.Div([
+    app.layout = html.Div(style=dark_layout_style, children=[
         html.H1("Bibite Analytics"),
         html.H2(f"Experiment: {TARGET_EXPERIMENT} | Run #: {TARGET_RUN}"),
         dcc.Interval(
             id='interval-component',
-            interval=10000,
+            interval=5000,
             n_intervals=0
         ),
         dcc.Graph(
@@ -193,17 +217,72 @@ def initialize_graphs():
             id="pellet-energy",
             style=scenario_graph_style
         ),
-        html.H2(f"{SPECIES_TO_MONITOR}"),
-    ] + [dcc.Graph(id=gene_name, style=species_graph_style, config={'responsive': True}) for gene_name in GENES_TO_MONITOR])
+        html.H2(children="All Species ever with 5+ Bibites")
+    ] + [
+        dcc.Graph(
+            id="all-bibite-counts",
+            style=scenario_graph_style
+        ),
+        dcc.Graph(
+            id="all-bibite-total-energy",
+            style=scenario_graph_style
+        )
+    ] + [
+        html.H2(id="species-to-monitor", children=f"{SPECIES_TO_MONITOR} - Select below (type to search)"),
+        dcc.Dropdown([SPECIES_TO_MONITOR], SPECIES_TO_MONITOR, id='species-dropdown', style=dropdown_style),
+        dcc.Graph(
+            id="bibite-count",
+            style=scenario_graph_style
+        ),
+        dcc.Graph(
+            id="bibite-energy",
+            style=scenario_graph_style
+        ),
+    ] + [dcc.Graph(id=gene_name, style=species_graph_style) for gene_name in GENES_TO_MONITOR])
 
     app.run_server(debug=True, use_reloader=False)
 
-outputs = [Output('pellet-count', 'figure'), Output('pellet-energy', 'figure')] + [Output(gene_name, 'figure') for gene_name in GENES_TO_MONITOR]
+# Callback to update the dropdown's options based on species_names
+@app.callback(
+    Output('species-dropdown', 'options'),
+    Input('interval-component', 'n_intervals')
+)
+def update_dropdown(n):
+    #species names from the keys in graph_data['species']
+    species_names = list(graph_data['species'].keys())
+
+    # Convert species_names to the format needed by the dropdown
+    options = [{'label': name, 'value': name} for name in species_names]
+    return options
+
+@app.callback(
+    Output('species-to-monitor', 'children'),
+    Input('species-dropdown', 'value')
+)
+def update_species_to_monitor(selected_species):
+    global SPECIES_TO_MONITOR
+    SPECIES_TO_MONITOR = selected_species
+    if selected_species is None:
+        return "No species selected."
+    return selected_species
+
+outputs = [
+    Output('pellet-count', 'figure'), 
+    Output('pellet-energy', 'figure'), 
+    Output('bibite-count', 'figure'), 
+    Output('bibite-energy', 'figure')
+    ] + [
+        Output(gene_name, 'figure') for gene_name in GENES_TO_MONITOR
+    ] + [
+        Output('all-bibite-counts', 'figure'),
+        Output('all-bibite-total-energy', 'figure')
+    ]
 @app.callback(
     outputs,
     Input('interval-component', 'n_intervals')
 )
 def update_graphs(n):
+    global SPECIES_TO_MONITOR
     pellet_count_fig = {
         'data': [
             go.Scatter(x=graph_data['simTime'], y=graph_data['plantPelletCount'], mode='lines+markers', name='Plant'),
@@ -216,6 +295,11 @@ def update_graphs(n):
             },
             'yaxis': {
                 'title': "Count"
+            },
+            'paper_bgcolor': '#1a1a1a',
+            'plot_bgcolor': '#1a1a1a',
+            'font': {
+                'color': '#e6e6e6'
             }
         }
     }
@@ -232,43 +316,152 @@ def update_graphs(n):
             },
             'yaxis': {
                 'title': "Energy"
+            },
+            'paper_bgcolor': '#1a1a1a',
+            'plot_bgcolor': '#1a1a1a',
+            'font': {
+                'color': '#e6e6e6'
             }
         }
     }
 
-    gene_figs = []
+    if SPECIES_TO_MONITOR == "":
+        if len(graph_data['species']) > 0:
+            SPECIES_TO_MONITOR = list(graph_data['species'].keys())[0]  # Default to the first species in the list
+        else:
+            # No species yet?  Return empty graphs
+            return (pellet_count_fig, pellet_energy_fig, None, None) + tuple([None for gene_name in GENES_TO_MONITOR])
+
+    selected_species_data = graph_data['species'][SPECIES_TO_MONITOR]
+    selected_species_count_fig = {
+        'data': [
+            go.Scatter(x=graph_data['simTime'], y=selected_species_data['count'], mode='lines+markers', name='Count')
+        ],
+        'layout': {
+            'title': "Bibite Count",
+            'xaxis': {
+                'title': "Sim Time (s)"
+            },
+            'yaxis': {
+                'title': "Count"
+            },
+            'paper_bgcolor': '#1a1a1a',
+            'plot_bgcolor': '#1a1a1a',
+            'font': {
+                'color': '#e6e6e6'
+            }
+        }
+    }
+
+    selected_species_energy_fig = {
+        'data': [
+            go.Scatter(x=graph_data['simTime'], y=selected_species_data['totalEnergy'], mode='lines+markers', name='Count')
+        ],
+        'layout': {
+            'title': "Bibite Energy",
+            'xaxis': {
+                'title': "Sim Time (s)"
+            },
+            'yaxis': {
+                'title': "Energy"
+            },
+            'paper_bgcolor': '#1a1a1a',
+            'plot_bgcolor': '#1a1a1a',
+            'font': {
+                'color': '#e6e6e6'
+            }
+        }
+    }
+
+    selected_species_gene_figs = []
+    selected_species_gene_data = selected_species_data['gene_data']
     for gene_name in GENES_TO_MONITOR:
-        gene_fig = {
+        selected_species_gene_fig = {
             'data': [
-                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_mean"], mode='lines+markers', name="mean"),
-                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_median"], mode='lines+markers', name="median"),
-                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_min"], mode='lines+markers', name="min"),
-                go.Scatter(x=graph_data['simTime'], y=graph_data[f"{gene_name}_max"], mode='lines+markers', name="max")
+                go.Scatter(x=graph_data['simTime'], y=selected_species_gene_data[gene_name]['mean'], mode='lines+markers', name="mean"),
+                go.Scatter(x=graph_data['simTime'], y=selected_species_gene_data[gene_name]['median'], mode='lines+markers', name="median"),
+                go.Scatter(x=graph_data['simTime'], y=selected_species_gene_data[gene_name]['min'], mode='lines+markers', name="min"),
+                go.Scatter(x=graph_data['simTime'], y=selected_species_gene_data[gene_name]['max'], mode='lines+markers', name="max")
             ],
             'layout': {
                 'title': f"{gene_name}",
                 'title_font': {'size': 10},
-                'yaxis': {
-                    'rangemode': 'tozero'
-                },
                 'showlegend': False,
                 'margin': {
-                    'l': 20,
-                    'r': 20,
-                    'b': 30,
+                    'l': 30,
+                    'r': 10,
+                    'b': 20,
                     't': 30
+                },
+                'paper_bgcolor': '#1a1a1a',
+                'plot_bgcolor': '#1a1a1a',
+                'font': {
+                    'color': '#e6e6e6'
                 }
             }
         }
-        gene_figs.append(gene_fig)
+        selected_species_gene_figs.append(selected_species_gene_fig)
     
-    response = (pellet_count_fig, pellet_energy_fig) + tuple(gene_figs)
+    # get all of the counts, total energies, and gene data from each species, with the species name as the key
+    species_counts = [
+        go.Scatter(x=graph_data['simTime'], y=graph_data['totalBibiteCount'], mode='lines+markers', name='Total (incl. < 5)')
+    ]
+    species_total_energies = []
+    for species_name in graph_data['species']:
+        species_data = graph_data['species'][species_name]
 
+        # only collect species with 5+ bibites
+        if max(species_data['count']) < 5:
+            continue
+
+        count_scatter = go.Scatter(x=graph_data['simTime'], y=species_data['count'], mode='lines+markers', name=species_name)
+        species_counts.append(count_scatter)
+
+        total_energy_scatter = go.Scatter(x=graph_data['simTime'], y=species_data['totalEnergy'], mode='lines+markers', name=species_name)
+        species_total_energies.append(total_energy_scatter)
+
+    all_species_count_fig = {
+        'data': species_counts,
+        'layout': {
+            'title': "Count",
+            'xaxis': {
+                'title': "Sim Time (s)"
+            },
+            'yaxis': {
+                'title': "Count"
+            },
+            'paper_bgcolor': '#1a1a1a',
+            'plot_bgcolor': '#1a1a1a',
+            'font': {
+                'color': '#e6e6e6'
+            }
+        }
+    }
+
+    all_species_energy_fig = {
+        'data': species_total_energies,
+        'layout': {
+            'title': "Total Energy",
+            'xaxis': {
+                'title': "Sim Time (s)"
+            },
+            'yaxis': {
+                'title': "Energy"
+            },
+            'paper_bgcolor': '#1a1a1a',
+            'plot_bgcolor': '#1a1a1a',
+            'font': {
+                'color': '#e6e6e6'
+            }
+        }
+    }
+    
+    response = (pellet_count_fig, pellet_energy_fig, selected_species_count_fig, selected_species_energy_fig) + tuple(selected_species_gene_figs) + (all_species_count_fig, all_species_energy_fig)
     return response
-
 
 def store_graph_data(scene):
     graph_data['simTime'].append(scene.simulatedTime)
+    graph_data['totalBibiteCount'].append(scene.totalBibiteCount)
 
     plant_data = scene.pellets['Plant']
     graph_data['plantPelletCount'].append(plant_data['count'])
@@ -279,46 +472,54 @@ def store_graph_data(scene):
     graph_data['meatPelletEnergy'].append(meat_data['energy'])
 
     for species_name in scene.species:
-        if species_name != SPECIES_TO_MONITOR:
-            continue
-
         species_data = scene.species[species_name]
+
+        if species_name not in graph_data['species']:
+            graph_data['species'][species_name] = {
+                'count': [],
+                'totalEnergy': [],
+                'gene_data': {}
+            }
+
+        graph_species_data = graph_data['species'][species_name]
+        graph_species_data['count'].append(species_data['count'])
+        graph_species_data['totalEnergy'].append(species_data['totalEnergy'])
+
+        graph_species_gene_data = graph_species_data['gene_data']
         for gene_name in species_data['gene_data']:
             if gene_name not in GENES_TO_MONITOR:
                 continue
             
             gene_data = species_data['gene_data'][gene_name]
-            if f"{gene_name}_mean" not in graph_data:
-                graph_data[f"{gene_name}_mean"] = []
-                graph_data[f"{gene_name}_median"] = []
-                graph_data[f"{gene_name}_min"] = []
-                graph_data[f"{gene_name}_max"] = []
+            if gene_name not in graph_species_gene_data:
+                graph_species_gene_data[gene_name] = {}
+                graph_species_gene_data[gene_name]['mean'] = []
+                graph_species_gene_data[gene_name]['median'] = []
+                graph_species_gene_data[gene_name]['min'] = []
+                graph_species_gene_data[gene_name]['max'] = []
             
-            graph_data[f"{gene_name}_mean"].append(gene_data['mean'])
-            graph_data[f"{gene_name}_median"].append(gene_data['median'])
-            graph_data[f"{gene_name}_min"].append(gene_data['min'])
-            graph_data[f"{gene_name}_max"].append(gene_data['max'])
+            graph_species_gene_data[gene_name]['mean'].append(gene_data['mean'])
+            graph_species_gene_data[gene_name]['median'].append(gene_data['median'])
+            graph_species_gene_data[gene_name]['min'].append(gene_data['min'])
+            graph_species_gene_data[gene_name]['max'].append(gene_data['max'])
 
 
 def process_zipped_save(zippath, savezip=True):
-    if os.path.exists(TEMP_UNARCHIVE_PATH):
-        shutil.rmtree(TEMP_UNARCHIVE_PATH)
+    with open(zippath, 'rb') as f:
+        zip_data = io.BytesIO(f.read())
 
-    with zipfile.ZipFile(zippath, 'r') as zip_ref:
-        zip_ref.extractall(TEMP_UNARCHIVE_PATH)
+    with zipfile.ZipFile(zip_data, 'r') as archive:
+        settings = Settings(archive)
 
-    # Load the settings and check if this is the experiment we want
-    settings = Settings(TEMP_UNARCHIVE_PATH)
+        if settings.scenario != TARGET_EXPERIMENT or str(settings.run_num) != str(TARGET_RUN):
+            return None
 
-    if settings.scenario != TARGET_EXPERIMENT or str(settings.run_num) != str(TARGET_RUN):
-        return None
+        # Process the savefile and update graphs
+        scene = Scene(settings, archive)
+        store_graph_data(scene)
 
-    # Process the savefile and update graphs
-    scene = Scene(settings, TEMP_UNARCHIVE_PATH)
-    store_graph_data(scene)
-
-    if savezip:
-        shutil.copy2(zippath, SAVEFILE_ARCHIVE_PATH)
+        if savezip:
+            shutil.copy2(zippath, SAVEFILE_ARCHIVE_PATH)
 
 class ZippedAutosaveHandler(FileSystemEventHandler):
     def on_created(self, event):
