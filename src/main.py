@@ -204,7 +204,7 @@ def initialize_graphs():
         html.H2(f"Experiment: {TARGET_EXPERIMENT} | Run #: {TARGET_RUN}"),
         dcc.Interval(
             id='interval-component',
-            interval=20000,
+            interval=5000,
             n_intervals=0
         ),
         dcc.Graph(
@@ -215,7 +215,7 @@ def initialize_graphs():
             id="pellet-energy",
             style=scenario_graph_style
         ),
-        dcc.Dropdown(['Basic bibite'], 'Basic bibite', id='species-dropdown', style=dropdown_style),
+        dcc.Dropdown([SPECIES_TO_MONITOR], SPECIES_TO_MONITOR, id='species-dropdown', style=dropdown_style),
         html.H2(id="species-to-monitor", children=f"{SPECIES_TO_MONITOR}"),
         dcc.Graph(
             id="bibite-count",
@@ -303,7 +303,10 @@ def update_graphs(n):
     }
 
     if SPECIES_TO_MONITOR == "":
-        SPECIES_TO_MONITOR = list(graph_data['species'].keys())[0]  # Default to the first species in the list
+        if len(graph_data['species']) > 0:
+            SPECIES_TO_MONITOR = list(graph_data['species'].keys())[0]  # Default to the first species in the list
+        else: 
+            return (pellet_count_fig, pellet_energy_fig, None, None) + tuple([None for gene_name in GENES_TO_MONITOR])
     graph_species_data = graph_data['species'][SPECIES_TO_MONITOR]
     bibite_count_fig = {
         'data': [

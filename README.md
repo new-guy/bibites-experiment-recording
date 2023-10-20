@@ -53,6 +53,7 @@ for example:
 ```
 6. Run `python ./src/main.py` or whatever the equivalent is for you.  Alternatively, use vscode, open up main.py, and hit F5 to run it - that's what I do
 7. Go to `localhost:8050` in your browser
+    - Note, it'll freak out until there's at least 1 save file
 
 *NOTE* You need to name your first pellet zone in your scenario in the format `"[experimentName] [runNumber]"` for this to work.  If you don't do this, it _will break_.
 
