@@ -20,7 +20,7 @@ Also, I use the term `experiment` to refer to any individual timeline of a run i
 
 **At the time of posting, this only supports Alpha 0.6a7**
 
-If you don't know how to do any of this, you can just copy this entire setup section into chatgpt and ask it to explain how to do this like you're five.  It'll help you out.
+If you don't know how to do any of this, you can just copy this entire setup section into chatgpt and ask it to explain how to do this like you've never opened up a command prompt before.  It'll help you out.
 
 1. Install python
 2. Download this repo (either with git or by downloading the zip and extracting it)
@@ -35,8 +35,7 @@ If you don't know how to do any of this, you can just copy this entire setup sec
     "runNumber": "[run to get data on]",
     "genesToMonitor": [
         [list of genes to monitor - see reference/bibite.bb8 for a list of genes]
-    ],
-    "speciesToMonitor": "[name of species - note that this is sensitive to capitalization and nothing will render if this is wrong]"
+    ]
 }
 ```
 for example:
@@ -49,8 +48,7 @@ for example:
         "genesToMonitor": [
             "Diet",
             "SizeRatio"
-        ],
-        "speciesToMonitor": "Basic bibite"
+        ]
     }
 ```
 6. Run `python ./src/main.py` or whatever the equivalent is for you.  Alternatively, use vscode, open up main.py, and hit F5 to run it - that's what I do

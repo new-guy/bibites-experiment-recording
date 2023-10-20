@@ -35,7 +35,6 @@ with open("./config.json") as config_file:
     TARGET_RUN = load_unclean_json_string(data)['runNumber']
     SAVEFILE_ARCHIVE_PATH = f"{load_unclean_json_string(data)['savefileArchivePath']}/{TARGET_EXPERIMENT}/{TARGET_RUN}"
     GENES_TO_MONITOR = load_unclean_json_string(data)['genesToMonitor']
-    SPECIES_TO_MONITOR = load_unclean_json_string(data)['speciesToMonitor']
 
 PELLET_MATERIALS = ['Plant', 'Meat']
     
