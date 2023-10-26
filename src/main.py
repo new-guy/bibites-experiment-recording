@@ -206,7 +206,7 @@ def initialize_graphs():
         html.H2(f"Experiment: {TARGET_EXPERIMENT} | Run #: {TARGET_RUN}"),
         dcc.Interval(
             id='interval-component',
-            interval=5000,
+            interval=20000,
             n_intervals=0
         ),
         dcc.Graph(
@@ -475,9 +475,10 @@ def store_graph_data(scene):
         species_data = scene.species[species_name]
 
         if species_name not in graph_data['species']:
+            autosaves_passed = len(graph_data['simTime'])
             graph_data['species'][species_name] = {
-                'count': [],
-                'totalEnergy': [],
+                'count': ([0] * (autosaves_passed - 1)),
+                'totalEnergy': ([0] * (autosaves_passed - 1)),
                 'gene_data': {}
             }
 
